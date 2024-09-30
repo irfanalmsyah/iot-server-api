@@ -8,7 +8,6 @@ mod services;
 mod schema;
 mod models;
 mod db;
-mod utilities;
 mod error;
 mod constants;
 
