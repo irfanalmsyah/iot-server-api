@@ -1,10 +1,12 @@
 use bcrypt::{hash, verify, DEFAULT_COST};
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::{
-    constants, db::Connection, schema::users::{self, dsl::*}
+    constants,
+    db::Connection,
+    schema::users::{self, dsl::*},
 };
 
 #[derive(Queryable, Selectable, Serialize, Deserialize, AsChangeset)]
@@ -36,7 +38,7 @@ pub struct LoginDTO {
 #[derive(Insertable, Serialize, Deserialize)]
 #[diesel(table_name = users)]
 pub struct LoginInfoDTO {
-    pub username: String
+    pub username: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -56,7 +58,9 @@ pub struct UserSlim {
 
 impl User {
     pub fn all(conn: &mut PgConnection) -> QueryResult<Vec<UserSlim>> {
-        users.select((id, username, email, status, isadmin)).load::<UserSlim>(conn)
+        users
+            .select((id, username, email, status, isadmin))
+            .load::<UserSlim>(conn)
     }
 
     pub fn find_by_id(conn: &mut Connection, user_id: i32) -> QueryResult<User> {
@@ -104,9 +108,7 @@ impl User {
         if let Ok(mut user) = users.find(user_id).get_result::<User>(conn) {
             if verify(&change_password.old_password, &user.password).unwrap() {
                 user.password = hash(&change_password.new_password, DEFAULT_COST).unwrap();
-                let _ = diesel::update(users.find(user_id))
-                    .set(&user)
-                    .execute(conn);
+                let _ = diesel::update(users.find(user_id)).set(&user).execute(conn);
                 return Ok(constants::MESSAGE_CHANGE_PASSWORD_SUCCESS.to_string());
             }
         }

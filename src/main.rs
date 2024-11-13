@@ -1,23 +1,23 @@
-use ntex::web;
 use dotenvy::dotenv;
+use ntex::web;
 use std::{env, io};
 
-mod routes;
+mod constants;
 mod controllers;
-mod services;
-mod schema;
-mod models;
 mod db;
 mod error;
-mod constants;
+mod models;
+mod routes;
+mod schema;
+mod services;
 
 #[ntex::main]
 async fn main() -> io::Result<()> {
     dotenv().ok();
-    
+
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let pool = db::init_pool(&database_url);
-    
+
     let app = move || {
         web::App::new()
             .state(pool.clone())

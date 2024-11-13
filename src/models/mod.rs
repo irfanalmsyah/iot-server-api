@@ -1,3 +1,3 @@
-pub mod users;
 pub mod response;
 pub mod token;
+pub mod users;

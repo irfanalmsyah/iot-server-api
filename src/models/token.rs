@@ -11,7 +11,7 @@ pub static KEY: LazyLock<Vec<u8>> = LazyLock::new(|| {
     dotenv().ok();
 
     let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set in the .env file");
-    
+
     secret.into_bytes()
 });
 
@@ -26,7 +26,7 @@ pub struct UserToken {
 
 #[derive(Serialize, Deserialize)]
 pub struct TokenBodyResponse {
-    pub token: String
+    pub token: String,
 }
 
 impl UserToken {

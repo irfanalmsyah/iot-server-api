@@ -14,6 +14,6 @@ pub fn init_pool(url: &str) -> Pool {
         .max_size(16)
         .build(manager)
         .expect("Failed to create pool.");
-    
+
     pool
 }

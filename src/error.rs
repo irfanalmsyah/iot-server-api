@@ -1,6 +1,6 @@
+use crate::{constants, models::response::ResponseBody};
 use derive_more::{Display, Error};
 use ntex::web::{HttpRequest, HttpResponse, WebResponseError};
-use crate::{constants, models::response::ResponseBody};
 
 #[derive(Debug, Display, Error)]
 pub enum ServiceError {
@@ -20,18 +20,17 @@ pub enum ServiceError {
 impl WebResponseError for ServiceError {
     fn error_response(&self, _: &HttpRequest) -> HttpResponse {
         match *self {
-            ServiceError::Unauthorized { ref error_message } => {
-                HttpResponse::Unauthorized().json(&ResponseBody::new(&error_message, constants::EMPTY))
-            },
+            ServiceError::Unauthorized { ref error_message } => HttpResponse::Unauthorized()
+                .json(&ResponseBody::new(&error_message, constants::EMPTY)),
             ServiceError::InternalServerError { ref error_message } => {
-                HttpResponse::InternalServerError().json(&ResponseBody::new(&error_message, constants::EMPTY))
-            },
-            ServiceError::BadRequest { ref error_message } => {
-                HttpResponse::BadRequest().json(&ResponseBody::new(&error_message, constants::EMPTY))
-            },
+                HttpResponse::InternalServerError()
+                    .json(&ResponseBody::new(&error_message, constants::EMPTY))
+            }
+            ServiceError::BadRequest { ref error_message } => HttpResponse::BadRequest()
+                .json(&ResponseBody::new(&error_message, constants::EMPTY)),
             ServiceError::NotFound { ref error_message } => {
                 HttpResponse::NotFound().json(&ResponseBody::new(&error_message, constants::EMPTY))
-            },
+            }
         }
     }
 }
