@@ -7,13 +7,10 @@ use crate::schema::users;
 use crate::{constants, db};
 use diesel::QueryDsl;
 use diesel::RunQueryDsl;
-use ntex::web;
 use serde_json::json;
 
-pub async fn get_all_users(
-    pool: &web::types::State<db::Pool>,
-) -> Result<Vec<UserSlim>, ServiceError> {
-    match User::all(&mut pool.get().unwrap()) {
+pub async fn get_all_users() -> Result<Vec<UserSlim>, ServiceError> {
+    match User::all() {
         Ok(users) => Ok(users),
         Err(_) => Err(ServiceError::InternalServerError {
             error_message: "Error loading users".to_string(),
@@ -21,11 +18,8 @@ pub async fn get_all_users(
     }
 }
 
-pub async fn get_user_by_id(
-    pool: &web::types::State<db::Pool>,
-    user_id: i32,
-) -> Result<User, ServiceError> {
-    match User::find_by_id(&mut pool.get().unwrap(), user_id) {
+pub async fn get_user_by_id(user_id: i32) -> Result<User, ServiceError> {
+    match User::find_by_id(user_id) {
         Ok(user) => Ok(user),
         Err(_) => Err(ServiceError::NotFound {
             error_message: format!("Person with id {} not found", user_id),
@@ -33,8 +27,8 @@ pub async fn get_user_by_id(
     }
 }
 
-pub fn signup(pool: &web::types::State<db::Pool>, user: UserDTO) -> Result<String, ServiceError> {
-    match User::signup(&mut pool.get().unwrap(), user) {
+pub fn signup(user: UserDTO) -> Result<String, ServiceError> {
+    match User::signup(user) {
         Ok(message) => Ok(message),
         Err(message) => Err(ServiceError::BadRequest {
             error_message: message,
@@ -42,12 +36,8 @@ pub fn signup(pool: &web::types::State<db::Pool>, user: UserDTO) -> Result<Strin
     }
 }
 
-pub fn login(
-    pool: &web::types::State<db::Pool>,
-    login: LoginDTO,
-) -> Result<TokenBodyResponse, ServiceError> {
-    let mut conn = pool.get().expect("couldn't get db connection from pool");
-    match User::login(&mut conn, login) {
+pub fn login(login: LoginDTO) -> Result<TokenBodyResponse, ServiceError> {
+    match User::login(login) {
         Some(logged_user) => {
             match serde_json::from_value(json!({ "token": UserToken::generate_token(&logged_user)}))
             {
@@ -70,11 +60,11 @@ pub fn login(
 }
 
 pub fn change_password(
-    pool: &web::types::State<db::Pool>,
     user_id: i32,
     change_password: ChangePasswordDTO,
 ) -> Result<String, ServiceError> {
-    match User::find_by_id(&mut pool.get().unwrap(), user_id) {
+    let mut conn = db::get_conn();
+    match User::find_by_id(user_id) {
         Ok(mut user) => {
             if !user.password.is_empty()
                 && bcrypt::verify(&change_password.old_password, &user.password).unwrap()
@@ -83,7 +73,7 @@ pub fn change_password(
                     bcrypt::hash(&change_password.new_password, bcrypt::DEFAULT_COST).unwrap();
                 match diesel::update(users::table.find(user_id))
                     .set(&user)
-                    .execute(&mut pool.get().unwrap())
+                    .execute(&mut conn)
                 {
                     Ok(_) => Ok(constants::MESSAGE_CHANGE_PASSWORD_SUCCESS.to_string()),
                     Err(_) => Err(ServiceError::InternalServerError {
