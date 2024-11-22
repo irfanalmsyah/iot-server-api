@@ -1,4 +1,4 @@
-use crate::controllers::hardwares;
+use crate::handlers::hardwares;
 use ntex::web;
 
 pub fn routes(cfg: &mut web::ServiceConfig) {

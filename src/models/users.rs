@@ -1,9 +1,8 @@
-use bcrypt::{hash, verify, DEFAULT_COST};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    constants, db,
+    database::run_query_dsl_ext::RunQueryDslExt,
     schema::users::{self, dsl::*},
 };
 
@@ -19,9 +18,9 @@ pub struct User {
     pub isadmin: Option<bool>,
 }
 
-#[derive(Insertable, Serialize, Deserialize)]
+#[derive(Insertable, Serialize, Deserialize, Clone)]
 #[diesel(table_name = users)]
-pub struct UserDTO {
+pub struct RegisterUser {
     pub username: String,
     pub email: String,
     pub password: String,
@@ -55,77 +54,55 @@ pub struct UserSlim {
 }
 
 impl User {
-    pub fn all() -> QueryResult<Vec<UserSlim>> {
-        let mut conn = db::get_conn();
-        users
+    pub fn all() -> Option<Vec<UserSlim>> {
+        match users
             .select((id, username, email, status, isadmin))
-            .load::<UserSlim>(&mut conn)
-    }
-
-    pub fn find_by_id(user_id: i32) -> QueryResult<User> {
-        let mut conn = db::get_conn();
-        users.find(user_id).first::<User>(&mut conn)
-    }
-
-    pub fn signup(new_user: UserDTO) -> Result<String, String> {
-        let mut conn = db::get_conn();
-        if Self::find_user_by_username(&new_user.username).is_err() {
-            let new_user = UserDTO {
-                password: hash(&new_user.password, DEFAULT_COST).unwrap(),
-                ..new_user
-            };
-            let _ = diesel::insert_into(users)
-                .values(new_user)
-                .execute(&mut conn);
-            Ok(constants::MESSAGE_SIGNUP_SUCCESS.to_string())
-        } else {
-            Err(format!(
-                "User '{}' is already registered",
-                &new_user.username
-            ))
-        }
-    }
-
-    pub fn login(login: LoginDTO) -> Option<LoginInfoDTO> {
-        let mut conn = db::get_conn();
-        if let Ok(user_to_verify) = users
-            .filter(username.eq(&login.username))
-            .get_result::<User>(&mut conn)
+            .load_all()
+            .optional()
         {
-            if !user_to_verify.password.is_empty()
-                && verify(&login.password, &user_to_verify.password).unwrap()
-            {
-                return Some(LoginInfoDTO {
-                    username: user_to_verify.username,
-                });
-            }
+            Ok(Some(response)) => Some(response),
+            Ok(None) => Some(Vec::new()),
+            Err(_) => None,
         }
-
-        None
     }
 
-    pub fn change_password(
-        user_id: i32,
-        change_password: ChangePasswordDTO,
-    ) -> Result<String, String> {
-        let mut conn = db::get_conn();
-        if let Ok(mut user) = users.find(user_id).get_result::<User>(&mut conn) {
-            if verify(&change_password.old_password, &user.password).unwrap() {
-                user.password = hash(&change_password.new_password, DEFAULT_COST).unwrap();
-                let _ = diesel::update(users.find(user_id))
-                    .set(&user)
-                    .execute(&mut conn);
-                return Ok(constants::MESSAGE_CHANGE_PASSWORD_SUCCESS.to_string());
-            }
+    pub fn find_by_id(user_id: i32) -> Option<User> {
+        match users.find(user_id).get_first() {
+            Ok(response) => Some(response),
+            Err(_) => None,
         }
-
-        Err(constants::MESSAGE_CHANGE_PASSWORD_FAILED.to_string())
     }
 
-    pub fn find_user_by_username(un: &str) -> QueryResult<User> {
-        let mut conn = db::get_conn();
-        users.filter(username.eq(un)).get_result::<User>(&mut conn)
+    pub fn find_user_by_username(un: &str) -> Option<User> {
+        match users.filter(username.eq(un)).get_first() {
+            Ok(response) => Some(response),
+            Err(_) => None,
+        }
     }
+
+    pub fn insert(new_user: RegisterUser) -> Option<User> {
+        match users.insert(&new_user) {
+            Ok(response) => Some(response),
+            Err(_) => None,
+        }
+    }
+
+    // pub fn change_password(
+    //     user_id: i32,
+    //     change_password: ChangePasswordDTO,
+    // ) -> Result<String, String> {
+    //     if let Ok(mut user) = users.find(user_id).get_result_query::<User>() {
+    //         if verify(&change_password.old_password, &user.password).unwrap() {
+    //             user.password = hash(&change_password.new_password, DEFAULT_COST).unwrap();
+    //             let _ = diesel::update(users.find(user_id))
+    //                 .set(&user)
+    //                 .execute_query();
+    //             return Ok(constants::MESSAGE_CHANGE_PASSWORD_SUCCESS);
+    //         }
+    //     }
+
+    //     Err(constants::MESSAGE_CHANGE_PASSWORD_FAILED)
+    // }
 
     pub fn default() -> User {
         User {

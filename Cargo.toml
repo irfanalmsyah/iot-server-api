@@ -12,6 +12,9 @@ derive_more = "0.99.17"
 bcrypt = "0.14.0"
 jsonwebtoken = "8.3.0"
 
+[build-dependencies]
+dotenvy = "0.15"
+
 [dependencies.diesel]
 version = "2.2.0"
 features = ["postgres", "r2d2", "chrono"]

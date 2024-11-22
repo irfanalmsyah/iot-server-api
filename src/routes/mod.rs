@@ -1,6 +1,7 @@
 use ntex::web;
 
 mod hardwares;
+mod middlewares;
 mod users;
 
 pub fn routes(cfg: &mut web::ServiceConfig) {

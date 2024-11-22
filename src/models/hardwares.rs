@@ -1,7 +1,7 @@
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{db, schema::hardwares};
+use crate::{database::run_query_dsl_ext::RunQueryDslExt, schema::hardwares};
 
 #[derive(Queryable, Selectable, Serialize, Deserialize, AsChangeset)]
 #[diesel(table_name = crate::schema::hardwares)]
@@ -23,31 +23,26 @@ pub struct HardwareDTO {
 
 impl Hardware {
     pub fn all() -> QueryResult<Vec<Hardware>> {
-        let mut conn = db::get_conn();
-        hardwares::table.load::<Hardware>(&mut conn)
+        hardwares::table.load_all()
     }
 
     pub fn find_by_id(hardware_id: i32) -> QueryResult<Hardware> {
-        let mut conn = db::get_conn();
-        hardwares::table.find(hardware_id).first(&mut conn)
+        hardwares::table.find(hardware_id).get_first()
     }
 
     pub fn insert(hardware: HardwareDTO) -> QueryResult<Hardware> {
-        let mut conn = db::get_conn();
         diesel::insert_into(hardwares::table)
             .values(hardware)
-            .get_result(&mut conn)
+            .get_result_query()
     }
 
     pub fn update(hardware_id: i32, hardware: HardwareDTO) -> QueryResult<Hardware> {
-        let mut conn = db::get_conn();
         diesel::update(hardwares::table.find(hardware_id))
             .set(hardware)
-            .get_result(&mut conn)
+            .get_result_query()
     }
 
     pub fn delete(hardware_id: i32) -> QueryResult<usize> {
-        let mut conn = db::get_conn();
-        diesel::delete(hardwares::table.find(hardware_id)).execute(&mut conn)
+        diesel::delete(hardwares::table.find(hardware_id)).execute_query()
     }
 }

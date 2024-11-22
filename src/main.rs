@@ -3,8 +3,8 @@ use ntex::web;
 use std::{env, io};
 
 mod constants;
-mod controllers;
-mod db;
+mod handlers;
+mod database;
 mod error;
 mod models;
 mod routes;
@@ -16,7 +16,7 @@ async fn main() -> io::Result<()> {
     dotenv().ok();
 
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    db::init_pool(&database_url);
+    database::init_pool(&database_url);
 
     let app = move || web::App::new().configure(routes::routes);
 

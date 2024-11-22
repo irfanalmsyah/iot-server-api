@@ -1,27 +1,31 @@
+use chrono::Utc;
+use jsonwebtoken::{decode, encode, errors::Error, DecodingKey, EncodingKey, Header, Validation};
+use serde::{Deserialize, Serialize};
 use std::{env, sync::LazyLock};
 
-use chrono::Utc;
-use dotenvy::dotenv;
-use jsonwebtoken::{EncodingKey, Header};
-use serde::{Deserialize, Serialize};
+use crate::models::users::User;
+include!(concat!(env!("OUT_DIR"), "/jwt_secret.rs"));
 
-use crate::models::users::LoginInfoDTO;
+pub static ENCODING_KEY: LazyLock<EncodingKey> =
+    LazyLock::new(|| EncodingKey::from_secret(JWT_SECRET));
 
-pub static KEY: LazyLock<Vec<u8>> = LazyLock::new(|| {
-    dotenv().ok();
+pub static DECODING_KEY: LazyLock<DecodingKey> =
+    LazyLock::new(|| DecodingKey::from_secret(JWT_SECRET));
 
-    let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set in the .env file");
+pub static HEADER: LazyLock<Header> = LazyLock::new(|| Header::default());
 
-    secret.into_bytes()
-});
+pub static VALIDATION: LazyLock<Validation> = LazyLock::new(|| Validation::default());
 
-static ONE_WEEK: i64 = 60 * 60 * 24 * 7; // in seconds
+static ONE_WEEK: i64 = 60 * 60 * 24 * 7;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct UserToken {
     pub iat: i64,
     pub exp: i64,
-    pub user: String,
+    pub user_id: i32,
+    pub username: String,
+    pub email: String,
+    pub isadmin: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -30,25 +34,21 @@ pub struct TokenBodyResponse {
 }
 
 impl UserToken {
-    pub fn generate_token(login: &LoginInfoDTO) -> String {
-        dotenvy::dotenv().ok();
-        let max_age: i64 = match env::var("MAX_AGE") {
-            Ok(val) => val.parse::<i64>().unwrap_or(ONE_WEEK),
-            Err(_) => ONE_WEEK,
-        };
-
-        let now = Utc::now().timestamp_nanos_opt().unwrap() / 1_000_000_000;
-        let payload = UserToken {
+    pub fn generate_token(user: &User) -> String {
+        let now = Utc::now().timestamp();
+        let claims = UserToken {
             iat: now,
-            exp: now + max_age,
-            user: login.username.clone(),
+            exp: now + ONE_WEEK,
+            user_id: user.id,
+            username: user.username.clone(),
+            email: user.email.clone(),
+            isadmin: user.isadmin.unwrap_or(false),
         };
 
-        jsonwebtoken::encode(
-            &Header::default(),
-            &payload,
-            &EncodingKey::from_secret(&KEY[..]),
-        )
-        .unwrap()
+        encode(&HEADER, &claims, &ENCODING_KEY).unwrap()
+    }
+
+    pub fn verify_token(token: &str) -> Result<Self, Error> {
+        decode::<Self>(token, &DECODING_KEY, &VALIDATION).map(|data| data.claims)
     }
 }
