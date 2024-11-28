@@ -4,8 +4,6 @@ use crate::handlers::users::{
     get_all_users_controller, get_user_by_id_controller, login_controller, signup_controller,
 };
 
-use super::middlewares::{AdminRequired, UserRequired};
-
 pub fn routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::resource("/")

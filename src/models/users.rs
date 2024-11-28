@@ -1,5 +1,5 @@
 use diesel::prelude::*;
-use serde::{Deserialize, Serialize};
+use sonic_rs::{Deserialize, Serialize};
 
 use crate::{
     database::run_query_dsl_ext::RunQueryDslExt,

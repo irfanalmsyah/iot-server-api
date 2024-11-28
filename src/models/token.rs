@@ -1,6 +1,6 @@
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, errors::Error, DecodingKey, EncodingKey, Header, Validation};
-use serde::{Deserialize, Serialize};
+use sonic_rs::{Deserialize, Serialize};
 use std::{env, sync::LazyLock};
 
 use crate::models::users::User;
