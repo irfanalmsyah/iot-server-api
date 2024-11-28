@@ -11,9 +11,6 @@ use crate::{
 use ntex::web::{self, HttpRequest, HttpResponse};
 
 pub async fn get_all_users_controller(req: HttpRequest) -> Result<HttpResponse, ServiceError> {
-    let extensions = req.extensions();
-    let user_token = extensions.get::<UserToken>().unwrap();
-    println!("User Token: {:?}", user_token.isadmin);
     match get_all_users().await {
         Ok(users) => Ok(HttpResponse::Ok().json(&ResponseBody::new(MESSAGE_OK, users))),
         Err(err) => Err(err),

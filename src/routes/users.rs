@@ -9,7 +9,6 @@ use super::middlewares::{AdminRequired, UserRequired};
 pub fn routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::resource("/")
-            .wrap(AdminRequired)
             .route(web::get().to(get_all_users_controller)),
     );
     cfg.route("/{id}/", web::get().to(get_user_by_id_controller));

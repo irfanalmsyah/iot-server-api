@@ -10,13 +10,11 @@ use crate::models::users::UserSlim;
 use crate::models::users::{LoginDTO, RegisterUser, User};
 
 pub async fn get_all_users() -> Result<Vec<UserSlim>, ServiceError> {
-    let users = User::all();
-    if users.is_some() {
-        Ok(users.unwrap())
-    } else {
-        Err(ServiceError::InternalServerError {
+    match User::all() {
+        Some(users) => Ok(users),
+        None => Err(ServiceError::InternalServerError {
             error_message: constants::MESSAGE_INTERNAL_SERVER_ERROR,
-        })
+        }),
     }
 }
 
