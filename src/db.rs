@@ -1,19 +1,11 @@
-use diesel::{
-    pg::PgConnection,
-    r2d2::{self, ConnectionManager},
-};
+use diesel_async::pooled_connection::deadpool::Pool;
+use diesel_async::pooled_connection::AsyncDieselConnectionManager;
+use diesel_async::AsyncPgConnection;
 
-pub type Connection = PgConnection;
+pub type PgPool = Pool<AsyncPgConnection>;
 
-pub type Pool = r2d2::Pool<ConnectionManager<Connection>>;
-
-pub fn init_pool(url: &str) -> Pool {
-    let manager = ConnectionManager::<Connection>::new(url);
-    let pool = r2d2::Pool::builder()
-        .min_idle(Some(4))
-        .max_size(16)
-        .build(manager)
-        .expect("Failed to create pool.");
-    
-    pool
+pub fn init_pool(url: &str) -> Result<Pool<AsyncPgConnection>, Box<dyn std::error::Error>> {
+    let config = AsyncDieselConnectionManager::<AsyncPgConnection>::new(url);
+    let pool = Pool::builder(config).build()?;
+    Ok(pool)
 }
