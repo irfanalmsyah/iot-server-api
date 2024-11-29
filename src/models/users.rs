@@ -1,6 +1,6 @@
 use diesel::{query_dsl::methods::SelectDsl, AsChangeset, Insertable, QueryResult, Queryable, Selectable};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use serde::{Deserialize, Serialize};
+use sonic_rs::{Deserialize, Serialize};
 
 use crate::schema::users::{self, dsl::*};
 

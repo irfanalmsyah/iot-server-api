@@ -3,7 +3,7 @@ use std::{env, sync::LazyLock};
 use chrono::Utc;
 use dotenvy::dotenv;
 use jsonwebtoken::{EncodingKey, Header};
-use serde::{Deserialize, Serialize};
+use sonic_rs::{Deserialize, Serialize};
 
 use crate::models::users::LoginInfoDTO;
 
