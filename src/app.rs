@@ -26,7 +26,7 @@ impl Service<Request> for App {
                 let body = self.0.get_all_users().await;
                 Ok(response_success(body))
             }
-            ("/signup/", &ntex::http::Method::POST) => {
+            ("/users/signup/", &ntex::http::Method::POST) => {
                 let payload = req.payload();
                 let body = self.0.register_user(payload).await;
                 Ok(response_success(body))
