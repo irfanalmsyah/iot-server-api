@@ -112,6 +112,10 @@ impl PgConnection {
         let data = std::str::from_utf8(&buf).unwrap();
         let data = sonic_rs::from_str::<RegisterPayload>(data).unwrap();
 
+        let seed = 1234;
+        let password_bytes = data.password.as_bytes();
+        let hashed_password = format!("{:x}", gxhash::gxhash32(password_bytes, seed));
+
         match self
             .cl
             .execute(
@@ -119,13 +123,17 @@ impl PgConnection {
                 &[
                     &data.username.as_ref(),
                     &data.email.as_ref(),
-                    &data.password.as_ref(),
+                    &hashed_password,
                 ],
             )
             .await
         {
             Ok(_) => {
-                to_writer(BytesWriter(&mut body), &data).unwrap();
+                let response = ApiResponse {
+                    message: MESSAGE_OK,
+                    data: vec![]
+                };
+                to_writer(BytesWriter(&mut body), &response).unwrap();
                 body.split().freeze()
             }
             Err(e) => {

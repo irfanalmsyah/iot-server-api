@@ -17,3 +17,4 @@ ntex-bytes = { version = "0.1.21", features=["simd"] }
 buf-min = { version = "0.7", features = ["ntex-bytes"] }
 futures = "0.3"
 tokio = { version = "1", features = ["full"] }
+gxhash = "3.4.1"
