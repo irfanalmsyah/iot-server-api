@@ -2,58 +2,21 @@
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-use db::PgConnection;
-use ntex::http::header::{CONTENT_TYPE, SERVER};
-use ntex::http::{HttpService, KeepAlive::Os, Request, Response, StatusCode};
+use app::AppFactory;
+use ntex::http::{HttpService, KeepAlive::Os};
 use ntex::server;
-use ntex::service::{Service, ServiceCtx, ServiceFactory};
-use ntex::web::{Error, HttpResponse};
 use ntex::{time::Seconds, util::PoolId, util::Ready};
 use std::io::Result as IoResult;
 use std::sync::{Arc, Mutex};
 
+mod app;
+mod constant;
 mod db;
 mod utils;
 
-struct App(PgConnection);
-
-impl Service<Request> for App {
-    type Response = Response;
-    type Error = Error;
-
-    async fn call(&self, req: Request, _: ServiceCtx<'_, Self>) -> Result<Response, Error> {
-        match req.path() {
-            "/db" => {
-                let body = self.0.get_all_users().await;
-                let mut res = HttpResponse::with_body(StatusCode::OK, body.into());
-                res.headers_mut().insert(SERVER, utils::HDR_SERVER);
-                res.headers_mut()
-                    .insert(CONTENT_TYPE, utils::HDR_JSON_CONTENT_TYPE);
-                Ok(res)
-            }
-            _ => Ok(Response::new(StatusCode::NOT_FOUND)),
-        }
-    }
-}
-
-struct AppFactory;
-
-impl ServiceFactory<Request> for AppFactory {
-    type Response = Response;
-    type Error = Error;
-    type Service = App;
-    type InitError = ();
-
-    async fn create(&self, _: ()) -> Result<Self::Service, Self::InitError> {
-        const DB_URL: &str = "postgres://postgres:password@localhost/rustdemo";
-
-        Ok(App(PgConnection::connect(DB_URL).await))
-    }
-}
-
 #[ntex::main]
 async fn main() -> IoResult<()> {
-    println!("Starting http server: 127.0.0.1:8080");
+    println!("Starting http server: http://127.0.0.1:8080");
 
     let cores = core_affinity::get_core_ids().unwrap();
     let total_cores = cores.len();
