@@ -1,4 +1,4 @@
-use crate::db::PgConnection;
+use crate::database::PgConnection;
 use ntex::http::{Method, Request, Response, StatusCode};
 use ntex::service::{Service, ServiceCtx, ServiceFactory};
 use ntex::web::Error;

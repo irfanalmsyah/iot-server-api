@@ -11,10 +11,10 @@ use std::sync::{Arc, Mutex};
 
 mod app;
 mod constant;
-mod db;
-mod utils;
-mod models;
+mod database;
 mod handlers;
+mod models;
+mod utils;
 
 #[ntex::main]
 async fn main() -> IoResult<()> {
