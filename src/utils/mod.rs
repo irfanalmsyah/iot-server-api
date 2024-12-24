@@ -14,6 +14,9 @@ pub const BODY_PLAIN_TEXT: Bytes = Bytes::from_static(b"Hello, World!");
 const HW: usize = 128 * 1024;
 pub const SIZE: usize = 27;
 
+pub mod auth;
+pub mod http;
+
 pub fn get_query_param(query: Option<&str>) -> usize {
     let query = query.unwrap_or("");
     let q = if let Some(pos) = query.find('q') {

@@ -1,36 +1,39 @@
-use ntex::http::header::{CONTENT_TYPE, SERVER};
-use ntex::http::{Request, Response, StatusCode};
+use crate::db::PgConnection;
+use ntex::http::{Method, Request, Response, StatusCode};
 use ntex::service::{Service, ServiceCtx, ServiceFactory};
 use ntex::web::Error;
-use ntex_bytes::Bytes;
-use crate::db::PgConnection;
-use crate::utils;
 
 pub struct App(pub PgConnection);
-
-fn response_success(data: Bytes) -> Response {
-    let mut res = Response::with_body(StatusCode::OK, data.into());
-    res.headers_mut()
-        .insert(CONTENT_TYPE, utils::HDR_JSON_CONTENT_TYPE);
-    res.headers_mut().insert(SERVER, utils::HDR_SERVER);
-    res
-}
 
 impl Service<Request> for App {
     type Response = Response;
     type Error = Error;
 
-    async fn call(&self, mut req: Request, _: ServiceCtx<'_, Self>) -> Result<Response, Error> {
+    async fn call(&self, req: Request, _: ServiceCtx<'_, Self>) -> Result<Response, Error> {
         match (req.path(), req.method()) {
-            ("/users/", &ntex::http::Method::GET) => {
-                let body = self.0.get_all_users().await;
-                Ok(response_success(body))
+            ("/users/", &Method::GET) => self.handle_get_users().await,
+            ("/users/signup/", &Method::POST) => self.handle_post_signup(req).await,
+            ("/users/login/", &Method::POST) => self.handle_post_login(req).await,
+
+            ("/hardwares/", &Method::GET) => self.handle_get_hardwares(req).await,
+            ("/hardwares/", &Method::POST) => self.handle_post_hardwares(req).await,
+            _ if req.path().starts_with("/hardwares/") && req.method() == &Method::GET => {
+                self.handle_get_hardware_by_id(req).await
             }
-            ("/users/signup/", &ntex::http::Method::POST) => {
-                let payload = req.payload();
-                let body = self.0.register_user(payload).await;
-                Ok(response_success(body))
+            _ if req.path().starts_with("/hardwares/") && req.method() == &Method::PUT => {
+                self.handle_update_hardware(req).await
             }
+            _ if req.path().starts_with("/hardwares/") && req.method() == &Method::DELETE => {
+                self.handle_delete_hardware(req).await
+            }
+
+            ("/nodes/", &Method::GET) => self.handle_get_nodes().await,
+            _ if req.path().starts_with("/nodes/") && req.method() == &Method::GET => {
+                self.handle_get_node_by_id(req).await
+            }
+
+            ("/channel/", &Method::POST) => self.handle_add_feed(req).await,
+
             _ => Ok(Response::new(StatusCode::NOT_FOUND)),
         }
     }

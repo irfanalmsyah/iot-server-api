@@ -13,6 +13,8 @@ mod app;
 mod constant;
 mod db;
 mod utils;
+mod models;
+mod handlers;
 
 #[ntex::main]
 async fn main() -> IoResult<()> {

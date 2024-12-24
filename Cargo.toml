@@ -10,10 +10,13 @@ ntex = { version = "2.8", features = ["tokio"] }
 mimalloc = { version = "0.1.25", default-features = false }
 serde = { version = "1", features = ["derive"] }
 nanorand = { version = "0.7", default-features = false, features = ["std", "wyrand", "tls"] }
-tokio-postgres = { version = "0.7", features = ["runtime"] }
+tokio-postgres = { version = "0.7", features = ["runtime", "with-chrono-0_4"] }
 core_affinity = "0.8"
 yarte = { version = "0.15", features = ["bytes-buf", "json"] }
 ntex-bytes = { version = "0.1.21", features=["simd"] }
 buf-min = { version = "0.7", features = ["ntex-bytes"] }
 futures = "0.3"
 tokio = { version = "1", features = ["full"] }
+chrono = { version = "0.4.39", features = ["serde"] }
+bcrypt = "0.16.0"
+jsonwebtoken = "9.3.0"
