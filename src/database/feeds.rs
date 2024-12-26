@@ -7,7 +7,10 @@ use ntex::{
 
 use crate::{
     constant::messages::MESSAGE_OK,
-    models::{feeds::FeedPayload, response::ApiResponse},
+    models::{
+        feeds::FeedPayload,
+        response::{ApiResponse, Data},
+    },
     utils::http::serialize_response,
 };
 
@@ -34,14 +37,14 @@ impl PgConnection {
             Ok(_) => {
                 let response: ApiResponse<FeedPayload> = ApiResponse {
                     message: MESSAGE_OK,
-                    data: vec![data],
+                    data: Data::Single(data),
                 };
                 serialize_response(response, StatusCode::CREATED)
             }
             Err(e) => {
                 let error_response: ApiResponse<FeedPayload> = ApiResponse {
                     message: &e.to_string(),
-                    data: vec![],
+                    data: Data::None,
                 };
                 serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
             }

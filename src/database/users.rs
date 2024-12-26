@@ -11,7 +11,7 @@ use crate::{
     constant::messages::MESSAGE_OK,
     models::{
         jwt::Claims,
-        response::ApiResponse,
+        response::{ApiResponse, Data},
         users::{LoginPayload, RegisterPayload, User, UserDTO},
     },
     utils::http::serialize_response,
@@ -37,7 +37,7 @@ impl PgConnection {
 
         let response = ApiResponse {
             message: MESSAGE_OK,
-            data: users,
+            data: Data::Multiple(users),
         };
 
         serialize_response(response, StatusCode::OK)
@@ -69,17 +69,17 @@ impl PgConnection {
             Ok(_) => {
                 let response: ApiResponse<UserDTO> = ApiResponse {
                     message: MESSAGE_OK,
-                    data: vec![UserDTO {
+                    data: Data::Single(UserDTO {
                         username: data.username,
                         email: data.email,
-                    }],
+                    }),
                 };
                 serialize_response(response, StatusCode::CREATED)
             }
             Err(e) => {
                 let error_response: ApiResponse<User> = ApiResponse {
                     message: &e.to_string(),
-                    data: vec![],
+                    data: Data::None,
                 };
                 serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
             }
@@ -117,7 +117,7 @@ impl PgConnection {
         {
             let error_response: ApiResponse<User> = ApiResponse {
                 message: "Invalid username or password",
-                data: vec![],
+                data: Data::None,
             };
             return serialize_response(error_response, StatusCode::UNAUTHORIZED);
         }
@@ -135,7 +135,7 @@ impl PgConnection {
 
         let response = ApiResponse {
             message: MESSAGE_OK,
-            data: vec![token],
+            data: Data::Single(token),
         };
 
         serialize_response(response, StatusCode::OK)

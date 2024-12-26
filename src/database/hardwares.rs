@@ -10,7 +10,7 @@ use crate::{
     constant::messages::MESSAGE_OK,
     models::{
         hardwares::{Hardware, HardwarePayload},
-        response::ApiResponse,
+        response::{ApiResponse, Data},
     },
     utils::http::serialize_response,
 };
@@ -33,7 +33,7 @@ impl PgConnection {
 
         let response = ApiResponse {
             message: MESSAGE_OK,
-            data: hardwares,
+            data: Data::Multiple(hardwares),
         };
 
         serialize_response(response, StatusCode::OK)
@@ -58,7 +58,7 @@ impl PgConnection {
 
         let response = ApiResponse {
             message: MESSAGE_OK,
-            data: hardwares,
+            data: Data::Multiple(hardwares),
         };
 
         serialize_response(response, StatusCode::OK)
@@ -88,14 +88,14 @@ impl PgConnection {
             Ok(_) => {
                 let response: ApiResponse<HardwarePayload> = ApiResponse {
                     message: MESSAGE_OK,
-                    data: vec![data],
+                    data: Data::Single(data),
                 };
                 serialize_response(response, StatusCode::CREATED)
             }
             Err(e) => {
                 let error_response: ApiResponse<Hardware> = ApiResponse {
                     message: &e.to_string(),
-                    data: vec![],
+                    data: Data::None,
                 };
                 serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
             }
@@ -127,14 +127,14 @@ impl PgConnection {
             Ok(_) => {
                 let response: ApiResponse<HardwarePayload> = ApiResponse {
                     message: MESSAGE_OK,
-                    data: vec![data],
+                    data: Data::Single(data),
                 };
                 serialize_response(response, StatusCode::OK)
             }
             Err(e) => {
                 let error_response: ApiResponse<Hardware> = ApiResponse {
                     message: &e.to_string(),
-                    data: vec![],
+                    data: Data::None,
                 };
                 serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
             }
@@ -146,14 +146,14 @@ impl PgConnection {
             Ok(_) => {
                 let response: ApiResponse<Hardware> = ApiResponse {
                     message: MESSAGE_OK,
-                    data: vec![],
+                    data: Data::None,
                 };
                 serialize_response(response, StatusCode::OK)
             }
             Err(e) => {
                 let error_response: ApiResponse<Hardware> = ApiResponse {
                     message: &e.to_string(),
-                    data: vec![],
+                    data: Data::None,
                 };
                 serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
             }
