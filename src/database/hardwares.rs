@@ -12,18 +12,13 @@ use crate::{
         hardwares::{Hardware, HardwarePayload},
         response::ApiResponse,
     },
-    utils::{auth::authenticate, http::serialize_response},
+    utils::http::serialize_response,
 };
 
 use super::PgConnection;
 
 impl PgConnection {
-    pub async fn get_all_hardware(&self, token: Option<&str>) -> (Bytes, StatusCode) {
-        match authenticate(token).await {
-            Ok(_) => (),
-            Err(e) => return serialize_response(e, StatusCode::UNAUTHORIZED),
-        }
-
+    pub async fn get_all_hardware(&self) -> (Bytes, StatusCode) {
         let rows = self.cl.query(&self.all_hardwares, &[]).await.unwrap();
 
         let mut hardwares = Vec::with_capacity(rows.len());

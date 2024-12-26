@@ -25,8 +25,11 @@ impl Service<Request> for App {
             },
 
             ("/nodes/", &Method::GET) => self.handle_get_nodes(req).await,
+            ("/nodes/", &Method::POST) => self.handle_post_nodes(req).await,
             _ if req.path().starts_with("/nodes/") => match req.method() {
                 &Method::GET => self.handle_get_node_by_id(req).await,
+                &Method::PUT => self.handle_update_node(req).await,
+                &Method::DELETE => self.handle_delete_node(req).await,
                 _ => self.handle_not_found(req).await,
             },
 

@@ -1,4 +1,5 @@
 use jsonwebtoken::{decode, DecodingKey, Validation};
+use ntex::http::Request;
 
 use crate::models::{jwt::Claims, response::ApiResponse};
 
@@ -11,10 +12,11 @@ pub async fn verify_jwt(token: &str) -> Result<Claims, &'static str> {
     }
 }
 
-pub async fn authenticate(token: Option<&str>) -> Result<(), ApiResponse<()>> {
+pub async fn authenticate(req: &Request) -> Result<i32, ApiResponse<()>> {
+    let token = get_token(req);
     match token {
         Some(t) => match verify_jwt(t).await {
-            Ok(_) => Ok(()),
+            Ok(claims) => Ok(claims.user_id),
             Err(err) => {
                 let error_response: ApiResponse<()> = ApiResponse {
                     message: err,
@@ -31,4 +33,14 @@ pub async fn authenticate(token: Option<&str>) -> Result<(), ApiResponse<()>> {
             Err(error_response)
         }
     }
+}
+
+pub fn get_token(req: &Request) -> Option<&str> {
+    let token = req
+        .headers()
+        .get("Authorization")
+        .map(|t| t.to_str().unwrap());
+    let token = token.and_then(|t| t.strip_prefix("Bearer "));
+
+    token
 }

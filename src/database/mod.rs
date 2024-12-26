@@ -5,8 +5,8 @@ use tokio_postgres::{connect, Client, NoTls, Statement};
 
 use crate::constant::query::{
     FEEDS_INSERT, FEEDS_SELECT_BY_NODE, HARDWARES_DELETE, HARDWARES_INSERT, HARDWARES_SELECT,
-    HARDWARES_SELECT_ONE, HARDWARES_UPDATE, NODES_SELECT, NODES_SELECT_ONE, USERS_INSERT,
-    USERS_LOGIN, USERS_SELECT,
+    HARDWARES_SELECT_ONE, HARDWARES_UPDATE, NODES_DELETE, NODES_INSERT, NODES_SELECT,
+    NODES_SELECT_ONE, NODES_UPDATE, USERS_INSERT, USERS_LOGIN, USERS_SELECT,
 };
 
 pub mod feeds;
@@ -26,6 +26,9 @@ pub struct PgConnection {
     delete_hardware: Statement,
     all_nodes: Statement,
     one_node: Statement,
+    add_node: Statement,
+    update_node: Statement,
+    delete_node: Statement,
     feeds_by_node: Statement,
     add_feed: Statement,
 }
@@ -50,6 +53,9 @@ impl PgConnection {
         let delete_hardware = cl.prepare(HARDWARES_DELETE).await.unwrap();
         let all_nodes = cl.prepare(NODES_SELECT).await.unwrap();
         let one_node = cl.prepare(NODES_SELECT_ONE).await.unwrap();
+        let add_node = cl.prepare(NODES_INSERT).await.unwrap();
+        let update_node = cl.prepare(NODES_UPDATE).await.unwrap();
+        let delete_node = cl.prepare(NODES_DELETE).await.unwrap();
         let feeds_by_node = cl.prepare(FEEDS_SELECT_BY_NODE).await.unwrap();
         let add_feed = cl.prepare(FEEDS_INSERT).await.unwrap();
 
@@ -65,6 +71,9 @@ impl PgConnection {
             delete_hardware,
             all_nodes,
             one_node,
+            add_node,
+            update_node,
+            delete_node,
             feeds_by_node,
             add_feed,
         }

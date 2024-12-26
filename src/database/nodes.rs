@@ -1,13 +1,17 @@
 use chrono::NaiveDateTime;
+use futures::StreamExt;
 use std::{borrow::Cow::Owned, str};
 
-use ntex::{http::StatusCode, util::Bytes};
+use ntex::{
+    http::{Payload, StatusCode},
+    util::Bytes,
+};
 
 use crate::{
     constant::messages::MESSAGE_OK,
     models::{
         feeds::Feed,
-        nodes::{Node, NodeWithFeed},
+        nodes::{Node, NodePayload, NodeWithFeed},
         response::ApiResponse,
     },
     utils::http::serialize_response,
@@ -81,5 +85,146 @@ impl PgConnection {
             }],
         };
         serialize_response(response, StatusCode::OK)
+    }
+
+    /* pub async fn add_hardware(&self, payload: &mut Payload) -> (Bytes, StatusCode) {
+        let mut buf = Vec::new();
+        while let Some(chunk) = payload.next().await {
+            buf.extend_from_slice(&chunk.unwrap());
+        }
+
+        let data = std::str::from_utf8(&buf).unwrap();
+        let data = sonic_rs::from_str::<HardwarePayload>(data).unwrap();
+
+        match self
+            .cl
+            .execute(
+                &self.add_hardware,
+                &[
+                    &data.name.as_ref(),
+                    &data.type_.as_ref(),
+                    &data.description.as_ref(),
+                ],
+            )
+            .await
+        {
+            Ok(_) => {
+                let response: ApiResponse<HardwarePayload> = ApiResponse {
+                    message: MESSAGE_OK,
+                    data: vec![data],
+                };
+                serialize_response(response, StatusCode::CREATED)
+            }
+            Err(e) => {
+                let error_response: ApiResponse<Hardware> = ApiResponse {
+                    message: &e.to_string(),
+                    data: vec![],
+                };
+                serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
+            }
+        }
+    } */
+
+    pub async fn add_node(&self, payload: &mut Payload, user_id: i32) -> (Bytes, StatusCode) {
+        let mut buf = Vec::new();
+        while let Some(chunk) = payload.next().await {
+            buf.extend_from_slice(&chunk.unwrap());
+        }
+
+        let data = str::from_utf8(&buf).unwrap();
+        let data = sonic_rs::from_str::<NodePayload>(data).unwrap();
+
+        match self
+            .cl
+            .execute(
+                &self.add_node,
+                &[
+                    &user_id,
+                    &data.hardware_id,
+                    &data.name.as_ref(),
+                    &data.location.as_ref(),
+                    &data.hardware_sensor_ids,
+                    &data.hardware_sensor_names,
+                    &data.ispublic,
+                ],
+            )
+            .await
+        {
+            Ok(_) => {
+                let response: ApiResponse<NodePayload> = ApiResponse {
+                    message: MESSAGE_OK,
+                    data: vec![data],
+                };
+                serialize_response(response, StatusCode::CREATED)
+            }
+            Err(e) => {
+                let error_response: ApiResponse<NodePayload> = ApiResponse {
+                    message: &e.to_string(),
+                    data: vec![],
+                };
+                serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
+            }
+        }
+    }
+
+    pub async fn update_node(&self, id: i32, payload: &mut Payload) -> (Bytes, StatusCode) {
+        let mut buf = Vec::new();
+        while let Some(chunk) = payload.next().await {
+            buf.extend_from_slice(&chunk.unwrap());
+        }
+
+        let data = str::from_utf8(&buf).unwrap();
+        let data = sonic_rs::from_str::<NodePayload>(data).unwrap();
+
+        match self
+            .cl
+            .execute(
+                &self.update_node,
+                &[
+                    &data.hardware_id,
+                    &data.name.as_ref(),
+                    &data.location.as_ref(),
+                    &data.hardware_sensor_ids,
+                    &data.hardware_sensor_names,
+                    &data.ispublic,
+                    &id,
+                ],
+            )
+            .await
+        {
+            Ok(_) => {
+                let response: ApiResponse<NodePayload> = ApiResponse {
+                    message: MESSAGE_OK,
+                    data: vec![data],
+                };
+                serialize_response(response, StatusCode::OK)
+            }
+            Err(e) => {
+                let error_response: ApiResponse<NodePayload> = ApiResponse {
+                    message: &e.to_string(),
+                    data: vec![],
+                };
+                serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
+            }
+        }
+    }
+
+    pub async fn delete_node(&self, id: i32) -> (Bytes, StatusCode) {
+        match self.cl.execute(&self.delete_node, &[&id]).await {
+            Ok(_) => {
+                let response: ApiResponse<NodePayload> = ApiResponse {
+                    message: MESSAGE_OK,
+                    data: vec![],
+                };
+                serialize_response(response, StatusCode::OK)
+            }
+            Err(e) => {
+                let error_response: ApiResponse<NodePayload> = ApiResponse {
+                    message: &e.to_string(),
+                    data: vec![],
+                };
+                serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
+            }
+        }
     }
 }
