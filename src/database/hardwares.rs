@@ -19,7 +19,7 @@ use super::PgConnection;
 
 impl PgConnection {
     pub async fn get_all_hardware(&self) -> (Bytes, StatusCode) {
-        let rows = self.cl.query(&self.all_hardwares, &[]).await.unwrap();
+        let rows = self.cl.query(&self.hardwares_select, &[]).await.unwrap();
 
         let mut hardwares = Vec::with_capacity(rows.len());
         for row in rows {
@@ -40,7 +40,11 @@ impl PgConnection {
     }
 
     pub async fn get_one_hardware(&self, id: i32) -> (Bytes, StatusCode) {
-        let rows = self.cl.query(&self.one_hardware, &[&id]).await.unwrap();
+        let rows = self
+            .cl
+            .query(&self.hardwares_select_by_id, &[&id])
+            .await
+            .unwrap();
 
         let mut hardwares = Vec::with_capacity(rows.len());
         for row in rows {
@@ -72,7 +76,7 @@ impl PgConnection {
         match self
             .cl
             .execute(
-                &self.add_hardware,
+                &self.hardwares_insert,
                 &[
                     &data.name.as_ref(),
                     &data.type_.as_ref(),
@@ -110,7 +114,7 @@ impl PgConnection {
         match self
             .cl
             .execute(
-                &self.update_hardware,
+                &self.hardwares_update_by_id,
                 &[
                     &data.name.as_ref(),
                     &data.type_.as_ref(),
@@ -138,7 +142,7 @@ impl PgConnection {
     }
 
     pub async fn delete_hardware(&self, id: i32) -> (Bytes, StatusCode) {
-        match self.cl.execute(&self.delete_hardware, &[&id]).await {
+        match self.cl.execute(&self.hardwares_delete_by_id, &[&id]).await {
             Ok(_) => {
                 let response: ApiResponse<Hardware> = ApiResponse {
                     message: MESSAGE_OK,

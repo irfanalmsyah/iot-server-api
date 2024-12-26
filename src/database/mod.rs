@@ -3,11 +3,7 @@ use std::str;
 
 use tokio_postgres::{connect, Client, NoTls, Statement};
 
-use crate::constant::query::{
-    FEEDS_INSERT, FEEDS_SELECT_BY_NODE, HARDWARES_DELETE, HARDWARES_INSERT, HARDWARES_SELECT,
-    HARDWARES_SELECT_ONE, HARDWARES_UPDATE, NODES_DELETE, NODES_INSERT, NODES_SELECT,
-    NODES_SELECT_BY_USER, NODES_SELECT_ONE, NODES_UPDATE, USERS_INSERT, USERS_LOGIN, USERS_SELECT,
-};
+use crate::constant::query;
 
 pub mod feeds;
 pub mod hardwares;
@@ -16,22 +12,22 @@ pub mod users;
 
 pub struct PgConnection {
     cl: Client,
-    all_users: Statement,
-    register_user: Statement,
-    login_user: Statement,
-    all_hardwares: Statement,
-    one_hardware: Statement,
-    add_hardware: Statement,
-    update_hardware: Statement,
-    delete_hardware: Statement,
-    all_nodes: Statement,
-    nodes_by_user: Statement,
-    one_node: Statement,
-    add_node: Statement,
-    update_node: Statement,
-    delete_node: Statement,
-    feeds_by_node: Statement,
-    add_feed: Statement,
+    users_select: Statement,
+    users_insert: Statement,
+    users_select_by_username: Statement,
+    hardwares_select: Statement,
+    hardwares_select_by_id: Statement,
+    hardwares_insert: Statement,
+    hardwares_update_by_id: Statement,
+    hardwares_delete_by_id: Statement,
+    nodes_select: Statement,
+    nodes_select_by_user_and_ispublic: Statement,
+    nodes_select_by_id: Statement,
+    nodes_insert: Statement,
+    nodes_update_by_id: Statement,
+    nodes_delete_by_id: Statement,
+    feeds_select_by_node_id: Statement,
+    feeds_insert: Statement,
 }
 
 impl PgConnection {
@@ -44,41 +40,45 @@ impl PgConnection {
                 eprintln!("connection error: {}", e);
             }
         });
-        let all_users = cl.prepare(USERS_SELECT).await.unwrap();
-        let register_user = cl.prepare(USERS_INSERT).await.unwrap();
-        let login_user = cl.prepare(USERS_LOGIN).await.unwrap();
-        let all_hardwares = cl.prepare(HARDWARES_SELECT).await.unwrap();
-        let one_hardware = cl.prepare(HARDWARES_SELECT_ONE).await.unwrap();
-        let add_hardware = cl.prepare(HARDWARES_INSERT).await.unwrap();
-        let update_hardware = cl.prepare(HARDWARES_UPDATE).await.unwrap();
-        let delete_hardware = cl.prepare(HARDWARES_DELETE).await.unwrap();
-        let all_nodes = cl.prepare(NODES_SELECT).await.unwrap();
-        let nodes_by_user = cl.prepare(NODES_SELECT_BY_USER).await.unwrap();
-        let one_node = cl.prepare(NODES_SELECT_ONE).await.unwrap();
-        let add_node = cl.prepare(NODES_INSERT).await.unwrap();
-        let update_node = cl.prepare(NODES_UPDATE).await.unwrap();
-        let delete_node = cl.prepare(NODES_DELETE).await.unwrap();
-        let feeds_by_node = cl.prepare(FEEDS_SELECT_BY_NODE).await.unwrap();
-        let add_feed = cl.prepare(FEEDS_INSERT).await.unwrap();
+
+        let users_select = cl.prepare(query::USERS_SELECT).await.unwrap();
+        let users_insert = cl.prepare(query::USERS_INSERT).await.unwrap();
+        let users_select_by_username = cl.prepare(query::USERS_SELECT_BY_USERNAME).await.unwrap();
+        let hardwares_select = cl.prepare(query::HARDWARES_SELECT).await.unwrap();
+        let hardwares_select_by_id = cl.prepare(query::HARDWARES_SELECT_BY_ID).await.unwrap();
+        let hardwares_insert = cl.prepare(query::HARDWARES_INSERT).await.unwrap();
+        let hardwares_update_by_id = cl.prepare(query::HARDWARES_UPDATE_BY_ID).await.unwrap();
+        let hardwares_delete_by_id = cl.prepare(query::HARDWARES_DELETE_BY_ID).await.unwrap();
+        let nodes_select = cl.prepare(query::NODES_SELECT).await.unwrap();
+        let nodes_select_by_user_and_ispublic = cl
+            .prepare(query::NODES_SELECT_BY_USER_AND_ISPUBLIC)
+            .await
+            .unwrap();
+        let nodes_select_by_id = cl.prepare(query::NODES_SELECT_BY_ID).await.unwrap();
+        let nodes_insert = cl.prepare(query::NODES_INSERT).await.unwrap();
+        let nodes_update_by_id = cl.prepare(query::NODES_UPDATE_BY_ID).await.unwrap();
+        let nodes_delete_by_id = cl.prepare(query::NODES_DELETE_BY_ID).await.unwrap();
+        let feeds_select_by_node_id = cl.prepare(query::FEEDS_SELECT_BY_NODE_ID).await.unwrap();
+        let feeds_insert = cl.prepare(query::FEEDS_INSERT).await.unwrap();
 
         PgConnection {
             cl,
-            all_users,
-            register_user,
-            login_user,
-            all_hardwares,
-            one_hardware,
-            add_hardware,
-            update_hardware,
-            delete_hardware,
-            all_nodes,
-            nodes_by_user,
-            one_node,
-            add_node,
-            update_node,
-            delete_node,
-            feeds_by_node,
-            add_feed,
+            users_select,
+            users_insert,
+            users_select_by_username,
+            hardwares_select,
+            hardwares_select_by_id,
+            hardwares_insert,
+            hardwares_update_by_id,
+            hardwares_delete_by_id,
+            nodes_select,
+            nodes_select_by_user_and_ispublic,
+            nodes_select_by_id,
+            nodes_insert,
+            nodes_update_by_id,
+            nodes_delete_by_id,
+            feeds_select_by_node_id,
+            feeds_insert,
         }
     }
 }

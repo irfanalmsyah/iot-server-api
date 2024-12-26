@@ -22,10 +22,10 @@ use super::PgConnection;
 impl PgConnection {
     pub async fn get_all_nodes(&self, user_id: i32, is_admin: bool) -> (Bytes, StatusCode) {
         let rows = if is_admin {
-            self.cl.query(&self.all_nodes, &[]).await.unwrap()
+            self.cl.query(&self.nodes_select, &[]).await.unwrap()
         } else {
             self.cl
-                .query(&self.nodes_by_user, &[&user_id])
+                .query(&self.nodes_select_by_user_and_ispublic, &[&user_id])
                 .await
                 .unwrap()
         };
@@ -57,7 +57,11 @@ impl PgConnection {
     }
 
     pub async fn get_node_with_feeds(&self, id: i32) -> (Bytes, StatusCode) {
-        let rows = self.cl.query(&self.one_node, &[&id]).await.unwrap();
+        let rows = self
+            .cl
+            .query(&self.nodes_select_by_id, &[&id])
+            .await
+            .unwrap();
 
         let node = Node {
             id: rows[0].get(0),
@@ -74,7 +78,11 @@ impl PgConnection {
             ispublic: rows[0].get(7),
         };
 
-        let feeds = self.cl.query(&self.feeds_by_node, &[&id]).await.unwrap();
+        let feeds = self
+            .cl
+            .query(&self.feeds_select_by_node_id, &[&id])
+            .await
+            .unwrap();
         let mut feeds_data = Vec::with_capacity(feeds.len());
         for row in feeds {
             feeds_data.push(Feed {
@@ -106,7 +114,7 @@ impl PgConnection {
         match self
             .cl
             .execute(
-                &self.add_node,
+                &self.nodes_insert,
                 &[
                     &user_id,
                     &data.hardware_id,
@@ -148,7 +156,7 @@ impl PgConnection {
         match self
             .cl
             .execute(
-                &self.update_node,
+                &self.nodes_update_by_id,
                 &[
                     &data.hardware_id,
                     &data.name.as_ref(),
@@ -179,7 +187,7 @@ impl PgConnection {
     }
 
     pub async fn delete_node(&self, id: i32) -> (Bytes, StatusCode) {
-        match self.cl.execute(&self.delete_node, &[&id]).await {
+        match self.cl.execute(&self.nodes_delete_by_id, &[&id]).await {
             Ok(_) => {
                 let response: ApiResponse<NodePayload> = ApiResponse {
                     message: MESSAGE_OK,

@@ -21,7 +21,7 @@ use super::PgConnection;
 
 impl PgConnection {
     pub async fn get_all_users(&self) -> (Bytes, StatusCode) {
-        let rows = self.cl.query(&self.all_users, &[]).await.unwrap();
+        let rows = self.cl.query(&self.users_select, &[]).await.unwrap();
 
         let mut users = Vec::with_capacity(rows.len());
         for row in rows {
@@ -57,7 +57,7 @@ impl PgConnection {
         match self
             .cl
             .execute(
-                &self.register_user,
+                &self.users_insert,
                 &[
                     &data.username.as_ref(),
                     &data.email.as_ref(),
@@ -97,7 +97,7 @@ impl PgConnection {
 
         let rows = self
             .cl
-            .query(&self.login_user, &[&data.username.as_ref()])
+            .query(&self.users_select_by_username, &[&data.username.as_ref()])
             .await
             .unwrap();
 

@@ -26,7 +26,7 @@ impl PgConnection {
         match self
             .cl
             .execute(
-                &self.add_feed,
+                &self.feeds_insert,
                 &[&data.node_id, &chrono::Utc::now().naive_utc(), &data.value],
             )
             .await
