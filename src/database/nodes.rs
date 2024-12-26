@@ -87,44 +87,6 @@ impl PgConnection {
         serialize_response(response, StatusCode::OK)
     }
 
-    /* pub async fn add_hardware(&self, payload: &mut Payload) -> (Bytes, StatusCode) {
-        let mut buf = Vec::new();
-        while let Some(chunk) = payload.next().await {
-            buf.extend_from_slice(&chunk.unwrap());
-        }
-
-        let data = std::str::from_utf8(&buf).unwrap();
-        let data = sonic_rs::from_str::<HardwarePayload>(data).unwrap();
-
-        match self
-            .cl
-            .execute(
-                &self.add_hardware,
-                &[
-                    &data.name.as_ref(),
-                    &data.type_.as_ref(),
-                    &data.description.as_ref(),
-                ],
-            )
-            .await
-        {
-            Ok(_) => {
-                let response: ApiResponse<HardwarePayload> = ApiResponse {
-                    message: MESSAGE_OK,
-                    data: vec![data],
-                };
-                serialize_response(response, StatusCode::CREATED)
-            }
-            Err(e) => {
-                let error_response: ApiResponse<Hardware> = ApiResponse {
-                    message: &e.to_string(),
-                    data: vec![],
-                };
-                serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
-            }
-        }
-    } */
-
     pub async fn add_node(&self, payload: &mut Payload, user_id: i32) -> (Bytes, StatusCode) {
         let mut buf = Vec::new();
         while let Some(chunk) = payload.next().await {
