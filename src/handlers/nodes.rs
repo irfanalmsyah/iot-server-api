@@ -5,7 +5,7 @@ use crate::utils::http::extract_id_from_path;
 use crate::{app::App, utils::http::response_json};
 
 impl App {
-    pub async fn handle_get_nodes(&self) -> Result<Response, Error> {
+    pub async fn handle_get_nodes(&self, _: Request) -> Result<Response, Error> {
         let (data, status) = self.0.get_all_nodes().await;
         Ok(response_json(data, status))
     }
