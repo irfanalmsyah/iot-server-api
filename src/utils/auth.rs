@@ -1,10 +1,13 @@
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use ntex::http::Request;
 
-use crate::models::{jwt::Claims, response::ApiResponse};
+use crate::{
+    constant::messages::{MESSAGE_INVALID_TOKEN, MESSAGE_UNAUTHORIZED},
+    models::jwt::Claims,
+};
 
 pub async fn verify_jwt(token: &str) -> Result<Claims, &'static str> {
-    let key = "your-secret-key"; // Replace with your actual secret key
+    let key = "your-secret-key";
     let validation = Validation::default();
     match decode::<Claims>(token, &DecodingKey::from_secret(key.as_ref()), &validation) {
         Ok(token_data) => Ok(token_data.claims),
@@ -12,26 +15,23 @@ pub async fn verify_jwt(token: &str) -> Result<Claims, &'static str> {
     }
 }
 
-pub async fn authenticate(req: &Request) -> Result<Claims, ApiResponse<()>> {
+pub async fn authenticate(req: &Request) -> Result<Claims, &'static str> {
     let token = get_token(req);
     match token {
         Some(t) => match verify_jwt(t).await {
             Ok(claims) => Ok(claims),
-            Err(err) => {
-                let error_response: ApiResponse<()> = ApiResponse {
-                    message: err,
-                    data: vec![],
-                };
-                Err(error_response)
-            }
+            Err(err) => Err(err),
         },
-        None => {
-            let error_response: ApiResponse<()> = ApiResponse {
-                message: "Token not provided",
-                data: vec![],
-            };
-            Err(error_response)
-        }
+        None => Err(MESSAGE_INVALID_TOKEN),
+    }
+}
+
+pub async fn authenticate_admin(req: &Request) -> Result<Claims, &'static str> {
+    let claims = authenticate(req).await?;
+    if claims.isadmin {
+        Ok(claims)
+    } else {
+        Err(MESSAGE_UNAUTHORIZED)
     }
 }
 
