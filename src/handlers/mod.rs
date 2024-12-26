@@ -6,7 +6,7 @@ pub mod users;
 use ntex::http::{Request, Response, StatusCode};
 use ntex::web::Error;
 
-use crate::constant::messages::{MESSAGE_NOT_FOUND, MESSAGE_UNAUTHENTICATED, MESSAGE_UNAUTHORIZED};
+use crate::constant::messages::{MESSAGE_NOT_FOUND, MESSAGE_UNAUTHORIZED};
 use crate::models::response::ApiResponse;
 use crate::utils::http::serialize_response;
 use crate::{app::App, utils::http::response_json};
@@ -21,9 +21,13 @@ impl App {
         Ok(response_json(data, status))
     }
 
-    pub async fn handle_not_authenticated(&self, _: Request) -> Result<Response, Error> {
+    pub async fn handle_not_authenticated_with_message(
+        &self,
+        _: Request,
+        message: &'static str,
+    ) -> Result<Response, Error> {
         let response: ApiResponse<()> = ApiResponse {
-            message: MESSAGE_UNAUTHENTICATED,
+            message,
             data: vec![],
         };
         let (data, status) = serialize_response(response, StatusCode::UNAUTHORIZED);

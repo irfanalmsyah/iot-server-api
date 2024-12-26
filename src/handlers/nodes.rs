@@ -12,7 +12,7 @@ impl App {
                 let (data, status) = self.0.get_all_nodes(claims.user_id, claims.isadmin).await;
                 Ok(response_json(data, status))
             }
-            Err(_) => self.handle_not_authenticated(req).await,
+            Err(err) => self.handle_not_authenticated_with_message(req, err).await,
         }
     }
 
@@ -23,7 +23,7 @@ impl App {
                     let (data, status) = self.0.get_node_with_feeds(id).await;
                     Ok(response_json(data, status))
                 }
-                Err(_) => self.handle_not_authenticated(req).await,
+                Err(err) => self.handle_not_authenticated_with_message(req, err).await,
             },
             None => Ok(Response::new(StatusCode::BAD_REQUEST)),
         }
@@ -36,7 +36,7 @@ impl App {
                 let (data, status) = self.0.add_node(payload, claims.user_id).await;
                 Ok(response_json(data, status))
             }
-            Err(_) => self.handle_not_authenticated(req).await,
+            Err(err) => self.handle_not_authenticated_with_message(req, err).await,
         }
     }
 
@@ -48,7 +48,7 @@ impl App {
                     let (data, status) = self.0.update_node(id, payload).await;
                     Ok(response_json(data, status))
                 }
-                Err(_) => self.handle_not_authenticated(req).await,
+                Err(err) => self.handle_not_authenticated_with_message(req, err).await,
             },
             None => Ok(Response::new(StatusCode::BAD_REQUEST)),
         }
@@ -61,7 +61,7 @@ impl App {
                     let (data, status) = self.0.delete_node(id).await;
                     Ok(response_json(data, status))
                 }
-                Err(_) => self.handle_not_authenticated(req).await,
+                Err(err) => self.handle_not_authenticated_with_message(req, err).await,
             },
             None => Ok(Response::new(StatusCode::BAD_REQUEST)),
         }

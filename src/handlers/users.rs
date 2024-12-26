@@ -13,7 +13,7 @@ impl App {
                 Ok(response_json(data, status))
             }
             Err(err) if err == MESSAGE_UNAUTHORIZED => self.handle_not_authorized(req).await,
-            Err(_) => self.handle_not_authenticated(req).await,
+            Err(err) => self.handle_not_authenticated_with_message(req, err).await,
         }
     }
 

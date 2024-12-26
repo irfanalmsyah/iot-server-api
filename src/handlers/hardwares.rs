@@ -12,7 +12,7 @@ impl App {
                 let (data, status) = self.0.get_all_hardware().await;
                 Ok(response_json(data, status))
             }
-            Err(_) => self.handle_not_authenticated(req).await,
+            Err(err) => self.handle_not_authenticated_with_message(req, err).await,
         }
     }
 
@@ -23,7 +23,7 @@ impl App {
                 let (data, status) = self.0.add_hardware(payload).await;
                 Ok(response_json(data, status))
             }
-            Err(_) => self.handle_not_authenticated(req).await,
+            Err(err) => self.handle_not_authenticated_with_message(req, err).await,
         }
     }
 
@@ -34,7 +34,7 @@ impl App {
                     let (data, status) = self.0.get_one_hardware(id).await;
                     Ok(response_json(data, status))
                 }
-                Err(_) => self.handle_not_authenticated(req).await,
+                Err(err) => self.handle_not_authenticated_with_message(req, err).await,
             },
             None => Ok(Response::new(StatusCode::BAD_REQUEST)),
         }
@@ -48,7 +48,7 @@ impl App {
                     let (data, status) = self.0.update_hardware(id, payload).await;
                     Ok(response_json(data, status))
                 }
-                Err(_) => self.handle_not_authenticated(req).await,
+                Err(err) => self.handle_not_authenticated_with_message(req, err).await,
             },
             None => Ok(Response::new(StatusCode::BAD_REQUEST)),
         }
@@ -61,7 +61,7 @@ impl App {
                     let (data, status) = self.0.delete_hardware(id).await;
                     Ok(response_json(data, status))
                 }
-                Err(_) => self.handle_not_authenticated(req).await,
+                Err(err) => self.handle_not_authenticated_with_message(req, err).await,
             },
             None => Ok(Response::new(StatusCode::BAD_REQUEST)),
         }
