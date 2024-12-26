@@ -12,11 +12,11 @@ pub async fn verify_jwt(token: &str) -> Result<Claims, &'static str> {
     }
 }
 
-pub async fn authenticate(req: &Request) -> Result<i32, ApiResponse<()>> {
+pub async fn authenticate(req: &Request) -> Result<Claims, ApiResponse<()>> {
     let token = get_token(req);
     match token {
         Some(t) => match verify_jwt(t).await {
-            Ok(claims) => Ok(claims.user_id),
+            Ok(claims) => Ok(claims),
             Err(err) => {
                 let error_response: ApiResponse<()> = ApiResponse {
                     message: err,

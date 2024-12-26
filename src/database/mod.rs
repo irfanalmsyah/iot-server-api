@@ -6,7 +6,7 @@ use tokio_postgres::{connect, Client, NoTls, Statement};
 use crate::constant::query::{
     FEEDS_INSERT, FEEDS_SELECT_BY_NODE, HARDWARES_DELETE, HARDWARES_INSERT, HARDWARES_SELECT,
     HARDWARES_SELECT_ONE, HARDWARES_UPDATE, NODES_DELETE, NODES_INSERT, NODES_SELECT,
-    NODES_SELECT_ONE, NODES_UPDATE, USERS_INSERT, USERS_LOGIN, USERS_SELECT,
+    NODES_SELECT_BY_USER, NODES_SELECT_ONE, NODES_UPDATE, USERS_INSERT, USERS_LOGIN, USERS_SELECT,
 };
 
 pub mod feeds;
@@ -25,6 +25,7 @@ pub struct PgConnection {
     update_hardware: Statement,
     delete_hardware: Statement,
     all_nodes: Statement,
+    nodes_by_user: Statement,
     one_node: Statement,
     add_node: Statement,
     update_node: Statement,
@@ -52,6 +53,7 @@ impl PgConnection {
         let update_hardware = cl.prepare(HARDWARES_UPDATE).await.unwrap();
         let delete_hardware = cl.prepare(HARDWARES_DELETE).await.unwrap();
         let all_nodes = cl.prepare(NODES_SELECT).await.unwrap();
+        let nodes_by_user = cl.prepare(NODES_SELECT_BY_USER).await.unwrap();
         let one_node = cl.prepare(NODES_SELECT_ONE).await.unwrap();
         let add_node = cl.prepare(NODES_INSERT).await.unwrap();
         let update_node = cl.prepare(NODES_UPDATE).await.unwrap();
@@ -70,6 +72,7 @@ impl PgConnection {
             update_hardware,
             delete_hardware,
             all_nodes,
+            nodes_by_user,
             one_node,
             add_node,
             update_node,

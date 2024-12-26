@@ -9,6 +9,7 @@ pub static HARDWARES_UPDATE: &str =
     "UPDATE hardwares SET name = $1, type = $2, description = $3 WHERE id = $4";
 pub static HARDWARES_DELETE: &str = "DELETE FROM hardwares WHERE id = $1";
 pub static NODES_SELECT: &str = "SELECT * FROM nodes";
+pub static NODES_SELECT_BY_USER: &str = "SELECT * FROM nodes WHERE user_id = $1 or ispublic = true";
 pub static NODES_SELECT_ONE: &str = "SELECT * FROM nodes WHERE id = $1";
 pub static NODES_INSERT: &str = "INSERT INTO nodes (user_id, hardware_id, name, location, hardware_sensor_ids, hardware_sensor_names, ispublic) VALUES ($1, $2, $3, $4, $5, $6, $7)";
 pub static NODES_UPDATE: &str = "UPDATE nodes SET hardware_id = $1, name = $2, location = $3, hardware_sensor_ids = $4, hardware_sensor_names = $5, ispublic = $6 WHERE id = $7";

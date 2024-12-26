@@ -126,6 +126,7 @@ impl PgConnection {
             &Header::default(),
             &Claims {
                 user_id: users[0].id,
+                isadmin: users[0].isadmin,
                 exp: chrono::Utc::now().timestamp() as usize + 60 * 60,
             },
             &EncodingKey::from_secret("your-secret-key".as_ref()),

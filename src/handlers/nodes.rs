@@ -8,8 +8,8 @@ use crate::{app::App, utils::http::response_json};
 impl App {
     pub async fn handle_get_nodes(&self, req: Request) -> Result<Response, Error> {
         match authenticate(&req).await {
-            Ok(_) => {
-                let (data, status) = self.0.get_all_nodes().await;
+            Ok(claims) => {
+                let (data, status) = self.0.get_all_nodes(claims.user_id, claims.isadmin).await;
                 Ok(response_json(data, status))
             }
             Err(_) => self.handle_not_authenticated(req).await,
@@ -31,9 +31,9 @@ impl App {
 
     pub async fn handle_post_nodes(&self, mut req: Request) -> Result<Response, Error> {
         match authenticate(&req).await {
-            Ok(user_id) => {
+            Ok(claims) => {
                 let payload = req.payload();
-                let (data, status) = self.0.add_node(payload, user_id).await;
+                let (data, status) = self.0.add_node(payload, claims.user_id).await;
                 Ok(response_json(data, status))
             }
             Err(_) => self.handle_not_authenticated(req).await,

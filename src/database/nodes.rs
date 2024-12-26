@@ -20,8 +20,15 @@ use crate::{
 use super::PgConnection;
 
 impl PgConnection {
-    pub async fn get_all_nodes(&self) -> (Bytes, StatusCode) {
-        let rows = self.cl.query(&self.all_nodes, &[]).await.unwrap();
+    pub async fn get_all_nodes(&self, user_id: i32, is_admin: bool) -> (Bytes, StatusCode) {
+        let rows = if is_admin {
+            self.cl.query(&self.all_nodes, &[]).await.unwrap()
+        } else {
+            self.cl
+                .query(&self.nodes_by_user, &[&user_id])
+                .await
+                .unwrap()
+        };
 
         let mut nodes = Vec::with_capacity(rows.len());
         for row in rows {
