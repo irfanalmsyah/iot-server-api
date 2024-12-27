@@ -46,19 +46,16 @@ impl PgConnection {
             .await
             .unwrap();
 
-        let mut hardwares = Vec::with_capacity(rows.len());
-        for row in rows {
-            hardwares.push(Hardware {
-                id: row.get(0),
-                name: Owned(row.get::<_, &str>(1).to_string()),
-                type_: Owned(row.get::<_, &str>(2).to_string()),
-                description: Owned(row.get::<_, &str>(3).to_string()),
-            });
-        }
+        let hardware = Hardware {
+            id: rows[0].get(0),
+            name: Owned(rows[0].get::<_, &str>(1).to_string()),
+            type_: Owned(rows[0].get::<_, &str>(2).to_string()),
+            description: Owned(rows[0].get::<_, &str>(3).to_string()),
+        };
 
         let response = ApiResponse {
             message: MESSAGE_OK,
-            data: Data::Multiple(hardwares),
+            data: Data::Single(hardware),
         };
 
         serialize_response(response, StatusCode::OK)
