@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 // Messages
-pub static MESSAGE_OK: &str = "ok";
+pub static MESSAGE_OK: &str = "Ok";
+pub static CREATED: &str = "Created";
 pub static MESSAGE_SIGNUP_SUCCESS: &str = "Signup successfully";
 pub static MESSAGE_LOGIN_SUCCESS: &str = "Login successfully";
 pub static MESSAGE_LOGIN_FAILED: &str = "Wrong username or password, please try again";
@@ -25,6 +26,7 @@ pub static MESSAGE_UNAUTHENTICATED: &str = "Unauthenticated";
 // Not found messages
 pub static HARDWARE_NOT_FOUND: &str = "Hardware not found";
 pub static SENSOR_NOT_FOUND: &str = "Sensor not found";
+pub static NODE_NOT_FOUND: &str = "Node not found";
 
 // Misc
 pub static EMPTY: &str = "";
