@@ -8,9 +8,10 @@ use ntex::{
 };
 
 use crate::{
-    constant::messages::MESSAGE_OK,
+    constant::messages::{self, MESSAGE_OK},
     models::{
         feeds::Feed,
+        hardwares::Hardware,
         nodes::{Node, NodePayload, NodeWithFeed},
         response::{ApiResponse, Data},
     },
@@ -110,6 +111,49 @@ impl PgConnection {
 
         let data = str::from_utf8(&buf).unwrap();
         let data = sonic_rs::from_str::<NodePayload>(data).unwrap();
+
+        let rows = self
+            .cl
+            .query(&self.hardwares_select_by_id, &[&data.hardware_id])
+            .await
+            .unwrap();
+        if rows.is_empty() {
+            let error_response: ApiResponse<NodePayload> = ApiResponse {
+                message: messages::HARDWARE_NOT_FOUND,
+                data: Data::None,
+            };
+            return serialize_response(error_response, StatusCode::NOT_FOUND);
+        }
+        let hardware = Hardware {
+            id: rows[0].get(0),
+            name: Owned(rows[0].get::<_, &str>(1).to_string()),
+            type_: Owned(rows[0].get::<_, &str>(2).to_string()),
+            description: Owned(rows[0].get::<_, &str>(3).to_string()),
+        };
+        if hardware.type_ == "sensor" {
+            let error_response: ApiResponse<NodePayload> = ApiResponse {
+                message: messages::NODE_HARDWARE_CANNOT_BE_SENSOR,
+                data: Data::None,
+            };
+            return serialize_response(error_response, StatusCode::BAD_REQUEST);
+        }
+
+        let rows = self
+            .cl
+            .query(
+                &self.hardwares_validate_sensor_ids,
+                &[&data.hardware_sensor_ids],
+            )
+            .await
+            .unwrap();
+
+        if rows[0].get::<_, i64>(0) > 0 {
+            let error_response: ApiResponse<NodePayload> = ApiResponse {
+                message: messages::SENSOR_NOT_FOUND,
+                data: Data::None,
+            };
+            return serialize_response(error_response, StatusCode::NOT_FOUND);
+        }
 
         match self
             .cl

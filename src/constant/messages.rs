@@ -11,6 +11,7 @@ pub static MESSAGE_CHANGE_PASSWORD_SUCCESS: &str = "Change password successfully
 // Bad request messages
 pub static MESSAGE_PASSWORD_NOT_MATCH: &str = "Old password does not match";
 pub static MESSAGE_CHANGE_PASSWORD_FAILED: &str = "Change password failed";
+pub static NODE_HARDWARE_CANNOT_BE_SENSOR: &str = "Node hardware cannot be a sensor";
 
 // Conflict messages
 pub static USERSNAME_ALREADY_EXIST: &str = "Username already exist";
@@ -20,6 +21,10 @@ pub static MESSAGE_UNAUTHORIZED: &str = "Unauthorized";
 pub static MESSAGE_TOKEN_EXPIRED: &str = "Token has expired";
 pub static MESSAGE_INVALID_TOKEN: &str = "Invalid token";
 pub static MESSAGE_UNAUTHENTICATED: &str = "Unauthenticated";
+
+// Not found messages
+pub static HARDWARE_NOT_FOUND: &str = "Hardware not found";
+pub static SENSOR_NOT_FOUND: &str = "Sensor not found";
 
 // Misc
 pub static EMPTY: &str = "";

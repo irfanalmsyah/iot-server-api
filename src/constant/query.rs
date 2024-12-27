@@ -17,3 +17,4 @@ pub static NODES_UPDATE_BY_ID: &str = "UPDATE nodes SET hardware_id = $1, name =
 pub static NODES_DELETE_BY_ID: &str = "DELETE FROM nodes WHERE id = $1";
 pub static FEEDS_SELECT_BY_NODE_ID: &str = "SELECT * FROM feeds WHERE node_id = $1";
 pub static FEEDS_INSERT: &str = "INSERT INTO feeds (node_id, time, value) VALUES ($1, $2, $3)";
+pub static HARDWARES_VALIDATE_SENSOR_IDS: &str = "SELECT COUNT(*) FROM unnest($1::INTEGER[]) AS sensor_id WHERE NOT EXISTS (SELECT 1 FROM hardwares WHERE id = sensor_id AND type = 'sensor')";
