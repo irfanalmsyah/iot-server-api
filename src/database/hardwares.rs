@@ -46,6 +46,14 @@ impl PgConnection {
             .await
             .unwrap();
 
+        if rows.is_empty() {
+            let error_response: ApiResponse<Hardware> = ApiResponse {
+                message: messages::HARDWARE_NOT_FOUND,
+                data: Data::None,
+            };
+            return serialize_response(error_response, StatusCode::NOT_FOUND);
+        }
+
         let hardware = Hardware {
             id: rows[0].get(0),
             name: Owned(rows[0].get::<_, &str>(1).to_string()),
@@ -131,10 +139,17 @@ impl PgConnection {
             )
             .await
         {
-            Ok(_) => {
+            Ok(rows_updated) => {
+                if rows_updated == 0 {
+                    let error_response: ApiResponse<Hardware> = ApiResponse {
+                        message: messages::HARDWARE_NOT_FOUND,
+                        data: Data::None,
+                    };
+                    return serialize_response(error_response, StatusCode::NOT_FOUND);
+                }
                 let response: ApiResponse<HardwarePayload> = ApiResponse {
                     message: MESSAGE_OK,
-                    data: Data::Single(data),
+                    data: Data::None,
                 };
                 serialize_response(response, StatusCode::OK)
             }
@@ -150,7 +165,14 @@ impl PgConnection {
 
     pub async fn delete_hardware(&self, id: i32) -> (Bytes, StatusCode) {
         match self.cl.execute(&self.hardwares_delete_by_id, &[&id]).await {
-            Ok(_) => {
+            Ok(rows_updated) => {
+                if rows_updated == 0 {
+                    let error_response: ApiResponse<Hardware> = ApiResponse {
+                        message: messages::HARDWARE_NOT_FOUND,
+                        data: Data::None,
+                    };
+                    return serialize_response(error_response, StatusCode::NOT_FOUND);
+                }
                 let response: ApiResponse<Hardware> = ApiResponse {
                     message: MESSAGE_OK,
                     data: Data::None,

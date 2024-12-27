@@ -57,12 +57,34 @@ impl PgConnection {
         serialize_response(response, StatusCode::OK)
     }
 
-    pub async fn get_node_with_feeds(&self, id: i32) -> (Bytes, StatusCode) {
-        let rows = self
-            .cl
-            .query(&self.nodes_select_by_id, &[&id])
-            .await
-            .unwrap();
+    pub async fn get_node_with_feeds(
+        &self,
+        id: i32,
+        user_id: i32,
+        is_admin: bool,
+    ) -> (Bytes, StatusCode) {
+        let rows = if is_admin {
+            self.cl
+                .query(&self.nodes_select_by_id, &[&id])
+                .await
+                .unwrap()
+        } else {
+            self.cl
+                .query(
+                    &self.nodes_select_by_id_and_by_user_or_ispublic,
+                    &[&id, &user_id],
+                )
+                .await
+                .unwrap()
+        };
+
+        if rows.is_empty() {
+            let error_response: ApiResponse<NodePayload> = ApiResponse {
+                message: messages::NODE_NOT_FOUND,
+                data: Data::None,
+            };
+            return serialize_response(error_response, StatusCode::NOT_FOUND);
+        }
 
         let node = Node {
             id: rows[0].get(0),
@@ -188,7 +210,13 @@ impl PgConnection {
         }
     }
 
-    pub async fn update_node(&self, id: i32, payload: &mut Payload) -> (Bytes, StatusCode) {
+    pub async fn update_node(
+        &self,
+        id: i32,
+        payload: &mut Payload,
+        user_id: i32,
+        is_admin: bool,
+    ) -> (Bytes, StatusCode) {
         let mut buf = Vec::new();
         while let Some(chunk) = payload.next().await {
             buf.extend_from_slice(&chunk.unwrap());
@@ -196,62 +224,133 @@ impl PgConnection {
 
         let data = str::from_utf8(&buf).unwrap();
         let data = sonic_rs::from_str::<NodePayload>(data).unwrap();
-
-        match self
-            .cl
-            .execute(
-                &self.nodes_update_by_id,
-                &[
-                    &data.hardware_id,
-                    &data.name.as_ref(),
-                    &data.location.as_ref(),
-                    &data.hardware_sensor_ids,
-                    &data.hardware_sensor_names,
-                    &data.ispublic,
-                    &id,
-                ],
-            )
-            .await
-        {
-            Ok(_) => {
-                let response: ApiResponse<NodePayload> = ApiResponse {
-                    message: MESSAGE_OK,
-                    data: Data::Single(data),
-                };
-                serialize_response(response, StatusCode::OK)
+        if is_admin {
+            match self
+                .cl
+                .execute(
+                    &self.nodes_update_by_id,
+                    &[
+                        &data.hardware_id,
+                        &data.name.as_ref(),
+                        &data.location.as_ref(),
+                        &data.hardware_sensor_ids,
+                        &data.hardware_sensor_names,
+                        &data.ispublic,
+                        &id,
+                    ],
+                )
+                .await
+            {
+                Ok(_) => {
+                    let response: ApiResponse<NodePayload> = ApiResponse {
+                        message: MESSAGE_OK,
+                        data: Data::Single(data),
+                    };
+                    serialize_response(response, StatusCode::OK)
+                }
+                Err(e) => {
+                    let error_response: ApiResponse<NodePayload> = ApiResponse {
+                        message: &e.to_string(),
+                        data: Data::None,
+                    };
+                    serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
+                }
             }
-            Err(e) => {
-                let error_response: ApiResponse<NodePayload> = ApiResponse {
-                    message: &e.to_string(),
-                    data: Data::None,
-                };
-                serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
+        } else {
+            match self
+                .cl
+                .execute(
+                    &self.nodes_update_by_id_and_user_id,
+                    &[
+                        &data.hardware_id,
+                        &data.name.as_ref(),
+                        &data.location.as_ref(),
+                        &data.hardware_sensor_ids,
+                        &data.hardware_sensor_names,
+                        &data.ispublic,
+                        &id,
+                        &user_id,
+                    ],
+                )
+                .await
+            {
+                Ok(rows_updated) => {
+                    if rows_updated == 0 {
+                        let error_response: ApiResponse<NodePayload> = ApiResponse {
+                            message: messages::NODE_NOT_FOUND,
+                            data: Data::None,
+                        };
+                        return serialize_response(error_response, StatusCode::NOT_FOUND);
+                    }
+                    let response: ApiResponse<NodePayload> = ApiResponse {
+                        message: MESSAGE_OK,
+                        data: Data::Single(data),
+                    };
+                    serialize_response(response, StatusCode::OK)
+                }
+                Err(e) => {
+                    let error_response: ApiResponse<NodePayload> = ApiResponse {
+                        message: &e.to_string(),
+                        data: Data::None,
+                    };
+                    serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
+                }
             }
         }
     }
 
-    pub async fn delete_node(&self, id: i32) -> (Bytes, StatusCode) {
-        match self.cl.execute(&self.nodes_delete_by_id, &[&id]).await {
-            Ok(rows_updated) => {
-                if rows_updated == 0 {
-                    let error_response: ApiResponse<NodePayload> = ApiResponse {
-                        message: messages::NODE_NOT_FOUND,
+    pub async fn delete_node(&self, id: i32, user_id: i32, is_admin: bool) -> (Bytes, StatusCode) {
+        if is_admin {
+            match self.cl.execute(&self.nodes_delete_by_id, &[&id]).await {
+                Ok(rows_updated) => {
+                    if rows_updated == 0 {
+                        let error_response: ApiResponse<NodePayload> = ApiResponse {
+                            message: messages::NODE_NOT_FOUND,
+                            data: Data::None,
+                        };
+                        return serialize_response(error_response, StatusCode::NOT_FOUND);
+                    }
+                    let response: ApiResponse<NodePayload> = ApiResponse {
+                        message: MESSAGE_OK,
                         data: Data::None,
                     };
-                    return serialize_response(error_response, StatusCode::NOT_FOUND);
+                    serialize_response(response, StatusCode::OK)
                 }
-                let response: ApiResponse<NodePayload> = ApiResponse {
-                    message: MESSAGE_OK,
-                    data: Data::None,
-                };
-                serialize_response(response, StatusCode::OK)
+                Err(e) => {
+                    let error_response: ApiResponse<NodePayload> = ApiResponse {
+                        message: &e.to_string(),
+                        data: Data::None,
+                    };
+                    serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
+                }
             }
-            Err(e) => {
-                let error_response: ApiResponse<NodePayload> = ApiResponse {
-                    message: &e.to_string(),
-                    data: Data::None,
-                };
-                serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
+        } else {
+            match self
+                .cl
+                .execute(&self.nodes_delete_by_id_and_user_id, &[&id, &user_id])
+                .await
+            {
+                Ok(rows_updated) => {
+                    if rows_updated == 0 {
+                        let error_response: ApiResponse<NodePayload> = ApiResponse {
+                            message: messages::NODE_NOT_FOUND,
+                            data: Data::None,
+                        };
+                        return serialize_response(error_response, StatusCode::NOT_FOUND);
+                    }
+                    let response: ApiResponse<NodePayload> = ApiResponse {
+                        message: MESSAGE_OK,
+                        data: Data::None,
+                    };
+                    serialize_response(response, StatusCode::OK)
+                }
+                Err(e) => {
+                    let error_response: ApiResponse<NodePayload> = ApiResponse {
+                        message: &e.to_string(),
+                        data: Data::None,
+                    };
+                    serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
+                }
             }
         }
     }

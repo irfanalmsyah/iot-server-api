@@ -19,8 +19,11 @@ impl App {
     pub async fn handle_get_node_by_id(&self, req: Request) -> Result<Response, Error> {
         match extract_id_from_path(req.path(), "/nodes/") {
             Some(id) => match authenticate(&req).await {
-                Ok(_) => {
-                    let (data, status) = self.0.get_node_with_feeds(id).await;
+                Ok(claims) => {
+                    let (data, status) = self
+                        .0
+                        .get_node_with_feeds(id, claims.user_id, claims.isadmin)
+                        .await;
                     Ok(response_json(data, status))
                 }
                 Err(err) => self.handle_not_authenticated_with_message(req, err).await,
@@ -43,9 +46,12 @@ impl App {
     pub async fn handle_update_node(&self, mut req: Request) -> Result<Response, Error> {
         match extract_id_from_path(req.path(), "/nodes/") {
             Some(id) => match authenticate(&req).await {
-                Ok(_) => {
+                Ok(claims) => {
                     let payload = req.payload();
-                    let (data, status) = self.0.update_node(id, payload).await;
+                    let (data, status) = self
+                        .0
+                        .update_node(id, payload, claims.user_id, claims.isadmin)
+                        .await;
                     Ok(response_json(data, status))
                 }
                 Err(err) => self.handle_not_authenticated_with_message(req, err).await,
@@ -57,8 +63,9 @@ impl App {
     pub async fn handle_delete_node(&self, req: Request) -> Result<Response, Error> {
         match extract_id_from_path(req.path(), "/nodes/") {
             Some(id) => match authenticate(&req).await {
-                Ok(_) => {
-                    let (data, status) = self.0.delete_node(id).await;
+                Ok(claims) => {
+                    let (data, status) =
+                        self.0.delete_node(id, claims.user_id, claims.isadmin).await;
                     Ok(response_json(data, status))
                 }
                 Err(err) => self.handle_not_authenticated_with_message(req, err).await,

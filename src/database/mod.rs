@@ -23,9 +23,12 @@ pub struct PgConnection {
     nodes_select: Statement,
     nodes_select_by_user_and_ispublic: Statement,
     nodes_select_by_id: Statement,
+    nodes_select_by_id_and_by_user_or_ispublic: Statement,
     nodes_insert: Statement,
     nodes_update_by_id: Statement,
+    nodes_update_by_id_and_user_id: Statement,
     nodes_delete_by_id: Statement,
+    nodes_delete_by_id_and_user_id: Statement,
     feeds_select_by_node_id: Statement,
     feeds_insert: Statement,
     hardwares_validate_sensor_ids: Statement,
@@ -52,13 +55,25 @@ impl PgConnection {
         let hardwares_delete_by_id = cl.prepare(query::HARDWARES_DELETE_BY_ID).await.unwrap();
         let nodes_select = cl.prepare(query::NODES_SELECT).await.unwrap();
         let nodes_select_by_user_and_ispublic = cl
-            .prepare(query::NODES_SELECT_BY_USER_AND_ISPUBLIC)
+            .prepare(query::NODES_SELECT_BY_USER_OR_ISPUBLIC)
             .await
             .unwrap();
         let nodes_select_by_id = cl.prepare(query::NODES_SELECT_BY_ID).await.unwrap();
+        let nodes_select_by_id_and_by_user_or_ispublic = cl
+            .prepare(query::NODES_SELECT_BY_ID_AND_BY_USER_OR_ISPUBLIC)
+            .await
+            .unwrap();
         let nodes_insert = cl.prepare(query::NODES_INSERT).await.unwrap();
         let nodes_update_by_id = cl.prepare(query::NODES_UPDATE_BY_ID).await.unwrap();
+        let nodes_update_by_id_and_user_id = cl
+            .prepare(query::NODES_UPDATE_BY_ID_AND_USER_ID)
+            .await
+            .unwrap();
         let nodes_delete_by_id = cl.prepare(query::NODES_DELETE_BY_ID).await.unwrap();
+        let nodes_delete_by_id_and_user_id = cl
+            .prepare(query::NODES_DELETE_BY_ID_AND_USER_ID)
+            .await
+            .unwrap();
         let feeds_select_by_node_id = cl.prepare(query::FEEDS_SELECT_BY_NODE_ID).await.unwrap();
         let feeds_insert = cl.prepare(query::FEEDS_INSERT).await.unwrap();
         let hardwares_validate_sensor_ids = cl
@@ -79,9 +94,12 @@ impl PgConnection {
             nodes_select,
             nodes_select_by_user_and_ispublic,
             nodes_select_by_id,
+            nodes_select_by_id_and_by_user_or_ispublic,
             nodes_insert,
             nodes_update_by_id,
+            nodes_update_by_id_and_user_id,
             nodes_delete_by_id,
+            nodes_delete_by_id_and_user_id,
             feeds_select_by_node_id,
             feeds_insert,
             hardwares_validate_sensor_ids,
