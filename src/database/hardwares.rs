@@ -69,9 +69,9 @@ impl PgConnection {
 
         let data = std::str::from_utf8(&buf).unwrap();
         let data = sonic_rs::from_str::<HardwarePayload>(data).unwrap();
-        if data.name != "sensor"
-            || data.name != "single-board computer"
-            || data.name != "microcontroller unit"
+        if data.type_ != "sensor"
+            && data.type_ != "single-board computer"
+            && data.type_ != "microcontroller unit"
         {
             let error_response: ApiResponse<Hardware> = ApiResponse {
                 message: messages::HARDWARE_TYPE_NOT_VALID,
@@ -94,8 +94,8 @@ impl PgConnection {
         {
             Ok(_) => {
                 let response: ApiResponse<HardwarePayload> = ApiResponse {
-                    message: MESSAGE_OK,
-                    data: Data::Single(data),
+                    message: messages::CREATED,
+                    data: Data::None,
                 };
                 serialize_response(response, StatusCode::CREATED)
             }
