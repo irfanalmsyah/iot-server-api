@@ -8,7 +8,7 @@ use ntex::{
 };
 
 use crate::{
-    constant::messages::MESSAGE_OK,
+    constant::{config, messages::MESSAGE_OK},
     models::{
         jwt::Claims,
         response::{ApiResponse, Data},
@@ -129,7 +129,7 @@ impl PgConnection {
                 isadmin: users[0].isadmin,
                 exp: chrono::Utc::now().timestamp() as usize + 60 * 60,
             },
-            &EncodingKey::from_secret("your-secret-key".as_ref()),
+            &EncodingKey::from_secret(config::JWT_SECRET.as_ref()),
         )
         .unwrap();
 

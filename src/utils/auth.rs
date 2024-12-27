@@ -2,14 +2,20 @@ use jsonwebtoken::{decode, errors::ErrorKind, DecodingKey, Validation};
 use ntex::http::Request;
 
 use crate::{
-    constant::messages::{MESSAGE_INVALID_TOKEN, MESSAGE_TOKEN_EXPIRED, MESSAGE_UNAUTHORIZED},
+    constant::{
+        config,
+        messages::{MESSAGE_INVALID_TOKEN, MESSAGE_TOKEN_EXPIRED, MESSAGE_UNAUTHORIZED},
+    },
     models::jwt::Claims,
 };
 
 pub async fn verify_jwt(token: &str) -> Result<Claims, &'static str> {
-    let key = "your-secret-key";
     let validation = Validation::default();
-    match decode::<Claims>(token, &DecodingKey::from_secret(key.as_ref()), &validation) {
+    match decode::<Claims>(
+        token,
+        &DecodingKey::from_secret(config::JWT_SECRET.as_ref()),
+        &validation,
+    ) {
         Ok(token_data) => Ok(token_data.claims),
         Err(err) if err == ErrorKind::ExpiredSignature.into() => Err(MESSAGE_TOKEN_EXPIRED),
         Err(_) => Err(MESSAGE_INVALID_TOKEN),

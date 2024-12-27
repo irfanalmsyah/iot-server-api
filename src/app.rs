@@ -1,3 +1,4 @@
+use crate::constant::config;
 use crate::database::PgConnection;
 use ntex::http::{Method, Request, Response};
 use ntex::service::{Service, ServiceCtx, ServiceFactory};
@@ -49,8 +50,6 @@ impl ServiceFactory<Request> for AppFactory {
     type InitError = ();
 
     async fn create(&self, _: ()) -> Result<Self::Service, Self::InitError> {
-        const DB_URL: &str = "postgres://postgres:password@localhost/rustdemo";
-
-        Ok(App(PgConnection::connect(DB_URL).await))
+        Ok(App(PgConnection::connect(config::DB_URL).await))
     }
 }
