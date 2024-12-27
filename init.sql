@@ -34,8 +34,8 @@ CREATE TABLE IF NOT EXISTS feeds (
 );
 
 
-insert into users (username, email, password, status, isadmin) values ('admin', 'admin@example.com', 'admin', true, true);
-insert into users (username, email, password, status, isadmin) values ('user', 'user@example.com', 'user', true, false);
+insert into users (username, email, password, status, isadmin) values ('admin', 'admin@example.com', '$2b$12$dqY4QSddDD5ouFcRzHg4b.iQjoccxzl//IjHuFKHvQ3wfL1chQdua', true, true);
+insert into users (username, email, password, status, isadmin) values ('user', 'user@example.com', '$2b$12$UKwEiy3bSIH/xUGbVsQ4B.3QJ08O.UCjZ/i0IO8H8lMn/BIuAG.xS', true, false);
 
 insert into hardwares (name, type, description) values ('Hegmann and Sons', 'microcontroller unit', 'Vivamus vel nulla eget eros elementum pellentesque. Quisque porta volutpat erat.');
 insert into hardwares (name, type, description) values ('Hartmann, Ziemann and Weber', 'single-board computer', 'Nullam molestie nibh in lectus. Pellentesque at nulla.');
