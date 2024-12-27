@@ -13,6 +13,7 @@ pub static MESSAGE_CHANGE_PASSWORD_SUCCESS: &str = "Change password successfully
 pub static MESSAGE_PASSWORD_NOT_MATCH: &str = "Old password does not match";
 pub static MESSAGE_CHANGE_PASSWORD_FAILED: &str = "Change password failed";
 pub static NODE_HARDWARE_CANNOT_BE_SENSOR: &str = "Node hardware cannot be a sensor";
+pub static HARDWARE_TYPE_NOT_VALID: &str = "Invalid hardware type";
 
 // Conflict messages
 pub static USERSNAME_ALREADY_EXIST: &str = "Username already exist";

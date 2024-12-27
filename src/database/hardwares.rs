@@ -7,7 +7,7 @@ use ntex::{
 };
 
 use crate::{
-    constant::messages::MESSAGE_OK,
+    constant::messages::{self, MESSAGE_OK},
     models::{
         hardwares::{Hardware, HardwarePayload},
         response::{ApiResponse, Data},
@@ -69,6 +69,16 @@ impl PgConnection {
 
         let data = std::str::from_utf8(&buf).unwrap();
         let data = sonic_rs::from_str::<HardwarePayload>(data).unwrap();
+        if data.name != "sensor"
+            || data.name != "single-board computer"
+            || data.name != "microcontroller unit"
+        {
+            let error_response: ApiResponse<Hardware> = ApiResponse {
+                message: messages::HARDWARE_TYPE_NOT_VALID,
+                data: Data::None,
+            };
+            return serialize_response(error_response, StatusCode::BAD_REQUEST);
+        }
 
         match self
             .cl
