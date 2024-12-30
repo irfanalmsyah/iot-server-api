@@ -14,8 +14,11 @@ pub struct User {
 
 #[derive(Serialize, Deserialize)]
 pub struct UserDTO {
+    pub id: i32,
     pub username: Cow<'static, str>,
     pub email: Cow<'static, str>,
+    pub status: bool,
+    pub isadmin: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -29,4 +32,17 @@ pub struct RegisterPayload {
 pub struct LoginPayload {
     pub username: Cow<'static, str>,
     pub password: Cow<'static, str>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ForgotPasswordPayload {
+    pub username: Cow<'static, str>,
+    pub email: Cow<'static, str>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ChangePasswordPayload {
+    pub username: Cow<'static, str>,
+    pub password: Cow<'static, str>,
+    pub new_password: Cow<'static, str>,
 }

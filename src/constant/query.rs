@@ -1,6 +1,14 @@
-pub static USERS_SELECT: &str = "SELECT * FROM users";
-pub static USERS_INSERT: &str = "INSERT INTO users (username, email, password, status, isadmin) VALUES ($1, $2, $3, true, false)";
+pub static USERS_SELECT: &str = "SELECT id, username, email, status, isadmin FROM users";
+pub static USERS_INSERT: &str = "INSERT INTO users (username, email, password, status, isadmin) VALUES ($1, $2, $3, false, false)";
 pub static USERS_SELECT_BY_USERNAME: &str = "SELECT * FROM users WHERE username = $1";
+pub static USERS_SELECT_BY_ID: &str =
+    "SELECT id, username, email, status, isadmin FROM users WHERE id = $1;";
+pub static USERS_SELECT_BY_USERNAME_AND_EMAIL: &str =
+    "SELECT * FROM users WHERE username = $1 AND email = $2";
+pub static USERS_UPDATE_STATUS_BY_USERNAME: &str =
+    "UPDATE users SET status = true WHERE username = $1";
+pub static USERS_UPDATE_PASSWORD_BY_USERNAME: &str =
+    "UPDATE users SET password = $1 WHERE username = $2";
 pub static HARDWARES_SELECT: &str = "SELECT * FROM hardwares";
 pub static HARDWARES_SELECT_BY_ID: &str = "SELECT * FROM hardwares WHERE id = $1";
 pub static HARDWARES_INSERT: &str =

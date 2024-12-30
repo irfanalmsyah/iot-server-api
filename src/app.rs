@@ -15,6 +15,16 @@ impl Service<Request> for App {
             ("/users/", &Method::GET) => self.handle_get_users(req).await,
             ("/users/signup/", &Method::POST) => self.handle_post_signup(req).await,
             ("/users/login/", &Method::POST) => self.handle_post_login(req).await,
+            ("/users/forgot-password/", &Method::POST) => self.handle_forgot_password(req).await,
+            ("/users/change-password/", &Method::PUT) => self.handle_change_password(req).await,
+            _ if req.path().starts_with("/users/") => match req.method() {
+                &Method::GET => self.handle_get_user_by_id(req).await,
+                _ => self.handle_not_found(req).await,
+            },
+            _ if req.path().starts_with("/activate/") => match req.method() {
+                &Method::GET => self.handle_activate_user(req).await,
+                _ => self.handle_not_found(req).await,
+            },
 
             ("/hardwares/", &Method::GET) => self.handle_get_hardwares(req).await,
             ("/hardwares/", &Method::POST) => self.handle_post_hardwares(req).await,

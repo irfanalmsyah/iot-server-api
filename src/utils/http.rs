@@ -35,3 +35,9 @@ pub fn extract_id_from_path(path: &str, prefix: &str) -> Option<i32> {
         .and_then(|p| p.strip_suffix("/"))
         .and_then(|id_str| id_str.parse::<i32>().ok())
 }
+
+pub fn extract_jwt_from_path(path: &str, prefix: &str) -> Option<String> {
+    path.strip_prefix(prefix)
+        .and_then(|p| p.strip_suffix("/"))
+        .map(|id_str| id_str.to_string())
+}

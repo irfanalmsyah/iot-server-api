@@ -2,6 +2,7 @@
 use std::{cmp, io, io::Write, mem::MaybeUninit, slice::from_raw_parts_mut};
 
 use atoi::FromRadix10;
+use nanorand::Rng;
 use ntex::{http::header::HeaderValue, util::BufMut, util::Bytes, util::BytesMut};
 use sonic_rs::writer::WriteExt;
 
@@ -16,6 +17,16 @@ pub const SIZE: usize = 27;
 
 pub mod auth;
 pub mod http;
+
+pub fn generate_string(len: usize) -> String {
+    let mut s = String::with_capacity(len);
+    let mut rng = nanorand::WyRand::new();
+    for _ in 0..len {
+        let random_char = (b'a' as i32 + rng.generate_range(0..26) as i32) as u8 as char;
+        s.push(random_char);
+    }
+    s
+}
 
 pub fn get_query_param(query: Option<&str>) -> usize {
     let query = query.unwrap_or("");

@@ -23,8 +23,10 @@ pub static MESSAGE_UNAUTHORIZED: &str = "Unauthorized";
 pub static MESSAGE_TOKEN_EXPIRED: &str = "Token has expired";
 pub static MESSAGE_INVALID_TOKEN: &str = "Invalid token";
 pub static MESSAGE_UNAUTHENTICATED: &str = "Unauthenticated";
+pub static ACCOUNT_NOT_ACTIVATED: &str = "Account not activated, please check your email";
 
 // Not found messages
+pub static USER_NOT_FOUND: &str = "User not found";
 pub static HARDWARE_NOT_FOUND: &str = "Hardware not found";
 pub static SENSOR_NOT_FOUND: &str = "Sensor not found";
 pub static NODE_NOT_FOUND: &str = "Node not found";

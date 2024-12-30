@@ -15,6 +15,10 @@ pub struct PgConnection {
     users_select: Statement,
     users_insert: Statement,
     users_select_by_username: Statement,
+    users_select_by_id: Statement,
+    users_select_by_username_and_email: Statement,
+    users_update_status_by_username: Statement,
+    users_update_password_by_username: Statement,
     hardwares_select: Statement,
     hardwares_select_by_id: Statement,
     hardwares_insert: Statement,
@@ -48,6 +52,19 @@ impl PgConnection {
         let users_select = cl.prepare(query::USERS_SELECT).await.unwrap();
         let users_insert = cl.prepare(query::USERS_INSERT).await.unwrap();
         let users_select_by_username = cl.prepare(query::USERS_SELECT_BY_USERNAME).await.unwrap();
+        let users_select_by_id = cl.prepare(query::USERS_SELECT_BY_ID).await.unwrap();
+        let users_select_by_username_and_email = cl
+            .prepare(query::USERS_SELECT_BY_USERNAME_AND_EMAIL)
+            .await
+            .unwrap();
+        let users_update_status_by_username = cl
+            .prepare(query::USERS_UPDATE_STATUS_BY_USERNAME)
+            .await
+            .unwrap();
+        let users_update_password_by_username = cl
+            .prepare(query::USERS_UPDATE_PASSWORD_BY_USERNAME)
+            .await
+            .unwrap();
         let hardwares_select = cl.prepare(query::HARDWARES_SELECT).await.unwrap();
         let hardwares_select_by_id = cl.prepare(query::HARDWARES_SELECT_BY_ID).await.unwrap();
         let hardwares_insert = cl.prepare(query::HARDWARES_INSERT).await.unwrap();
@@ -86,6 +103,10 @@ impl PgConnection {
             users_select,
             users_insert,
             users_select_by_username,
+            users_select_by_id,
+            users_select_by_username_and_email,
+            users_update_status_by_username,
+            users_update_password_by_username,
             hardwares_select,
             hardwares_select_by_id,
             hardwares_insert,
