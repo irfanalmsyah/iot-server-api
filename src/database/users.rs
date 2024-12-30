@@ -6,6 +6,7 @@ use lettre::{
     Transport,
 };
 use std::{borrow::Cow::Owned, str};
+use tokio_postgres::error::SqlState;
 
 use ntex::{
     http::{Payload, StatusCode},
@@ -126,6 +127,18 @@ impl PgConnection {
                 serialize_response(response, StatusCode::CREATED)
             }
             Err(e) => {
+                match e.code() {
+                    Some(code) => {
+                        if *code == SqlState::UNIQUE_VIOLATION {
+                            let error_response: ApiResponse<User> = ApiResponse {
+                                message: messages::USER_EXISTS,
+                                data: Data::None,
+                            };
+                            return serialize_response(error_response, StatusCode::CONFLICT);
+                        }
+                    }
+                    None => (),
+                }
                 let error_response: ApiResponse<User> = ApiResponse {
                     message: &e.to_string(),
                     data: Data::None,

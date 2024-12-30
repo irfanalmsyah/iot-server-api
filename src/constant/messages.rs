@@ -1,5 +1,6 @@
 pub static OK: &str = "Ok";
 pub static CREATED: &str = "Created";
+pub static USER_EXISTS: &str = "User already exists";
 pub static LOGIN_FAILED: &str = "Wrong username or password, please try again";
 pub static NODE_HARDWARE_CANNOT_BE_SENSOR: &str = "Node hardware cannot be a sensor";
 pub static HARDWARE_TYPE_NOT_VALID: &str = "Invalid hardware type";
