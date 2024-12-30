@@ -8,7 +8,7 @@ use ntex::{
 };
 
 use crate::{
-    constant::messages::{self, MESSAGE_OK},
+    constant::messages,
     models::{
         feeds::Feed,
         hardwares::Hardware,
@@ -50,7 +50,7 @@ impl PgConnection {
         }
 
         let response = ApiResponse {
-            message: MESSAGE_OK,
+            message: messages::OK,
             data: Data::Multiple(nodes),
         };
 
@@ -116,7 +116,7 @@ impl PgConnection {
             });
         }
         let response = ApiResponse {
-            message: MESSAGE_OK,
+            message: messages::OK,
             data: Data::Single(NodeWithFeed {
                 node,
                 feeds: feeds_data,
@@ -243,7 +243,7 @@ impl PgConnection {
             {
                 Ok(_) => {
                     let response: ApiResponse<NodePayload> = ApiResponse {
-                        message: MESSAGE_OK,
+                        message: messages::OK,
                         data: Data::Single(data),
                     };
                     serialize_response(response, StatusCode::OK)
@@ -283,7 +283,7 @@ impl PgConnection {
                         return serialize_response(error_response, StatusCode::NOT_FOUND);
                     }
                     let response: ApiResponse<NodePayload> = ApiResponse {
-                        message: MESSAGE_OK,
+                        message: messages::OK,
                         data: Data::Single(data),
                     };
                     serialize_response(response, StatusCode::OK)
@@ -311,7 +311,7 @@ impl PgConnection {
                         return serialize_response(error_response, StatusCode::NOT_FOUND);
                     }
                     let response: ApiResponse<NodePayload> = ApiResponse {
-                        message: MESSAGE_OK,
+                        message: messages::OK,
                         data: Data::None,
                     };
                     serialize_response(response, StatusCode::OK)
@@ -339,7 +339,7 @@ impl PgConnection {
                         return serialize_response(error_response, StatusCode::NOT_FOUND);
                     }
                     let response: ApiResponse<NodePayload> = ApiResponse {
-                        message: MESSAGE_OK,
+                        message: messages::OK,
                         data: Data::None,
                     };
                     serialize_response(response, StatusCode::OK)

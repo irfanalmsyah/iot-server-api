@@ -6,7 +6,7 @@ pub mod users;
 use ntex::http::{Request, Response, StatusCode};
 use ntex::web::Error;
 
-use crate::constant::messages::{MESSAGE_NOT_FOUND, MESSAGE_UNAUTHORIZED};
+use crate::constant::messages;
 use crate::models::response::{ApiResponse, Data};
 use crate::utils::http::serialize_response;
 use crate::{app::App, utils::http::response_json};
@@ -14,7 +14,7 @@ use crate::{app::App, utils::http::response_json};
 impl App {
     pub async fn handle_not_found(&self, _: Request) -> Result<Response, Error> {
         let response: ApiResponse<()> = ApiResponse {
-            message: MESSAGE_NOT_FOUND,
+            message: messages::NOT_FOUND,
             data: Data::None,
         };
         let (data, status) = serialize_response(response, StatusCode::NOT_FOUND);
@@ -36,7 +36,7 @@ impl App {
 
     pub async fn handle_not_authorized(&self, _: Request) -> Result<Response, Error> {
         let response: ApiResponse<()> = ApiResponse {
-            message: MESSAGE_UNAUTHORIZED,
+            message: messages::UNAUTHORIZED,
             data: Data::None,
         };
         let (data, status) = serialize_response(response, StatusCode::FORBIDDEN);

@@ -7,7 +7,7 @@ use ntex::{
 };
 
 use crate::{
-    constant::messages::{self, MESSAGE_OK},
+    constant::messages,
     models::{
         hardwares::{Hardware, HardwarePayload},
         response::{ApiResponse, Data},
@@ -32,7 +32,7 @@ impl PgConnection {
         }
 
         let response = ApiResponse {
-            message: MESSAGE_OK,
+            message: messages::OK,
             data: Data::Multiple(hardwares),
         };
 
@@ -62,7 +62,7 @@ impl PgConnection {
         };
 
         let response = ApiResponse {
-            message: MESSAGE_OK,
+            message: messages::OK,
             data: Data::Single(hardware),
         };
 
@@ -148,7 +148,7 @@ impl PgConnection {
                     return serialize_response(error_response, StatusCode::NOT_FOUND);
                 }
                 let response: ApiResponse<HardwarePayload> = ApiResponse {
-                    message: MESSAGE_OK,
+                    message: messages::OK,
                     data: Data::None,
                 };
                 serialize_response(response, StatusCode::OK)
@@ -174,7 +174,7 @@ impl PgConnection {
                     return serialize_response(error_response, StatusCode::NOT_FOUND);
                 }
                 let response: ApiResponse<Hardware> = ApiResponse {
-                    message: MESSAGE_OK,
+                    message: messages::OK,
                     data: Data::None,
                 };
                 serialize_response(response, StatusCode::OK)

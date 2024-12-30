@@ -1,7 +1,7 @@
 use ntex::http::{Request, Response, StatusCode};
 use ntex::web::Error;
 
-use crate::constant::messages::MESSAGE_UNAUTHORIZED;
+use crate::constant::messages;
 use crate::utils::auth::{authenticate, authenticate_admin};
 use crate::utils::http::extract_id_from_path;
 use crate::{app::App, utils::http::response_json};
@@ -24,7 +24,7 @@ impl App {
                 let (data, status) = self.0.add_hardware(payload).await;
                 Ok(response_json(data, status))
             }
-            Err(err) if err == MESSAGE_UNAUTHORIZED => self.handle_not_authorized(req).await,
+            Err(err) if err == messages::UNAUTHORIZED => self.handle_not_authorized(req).await,
             Err(err) => self.handle_not_authenticated_with_message(req, err).await,
         }
     }
@@ -50,7 +50,7 @@ impl App {
                     let (data, status) = self.0.update_hardware(id, payload).await;
                     Ok(response_json(data, status))
                 }
-                Err(err) if err == MESSAGE_UNAUTHORIZED => self.handle_not_authorized(req).await,
+                Err(err) if err == messages::UNAUTHORIZED => self.handle_not_authorized(req).await,
                 Err(err) => self.handle_not_authenticated_with_message(req, err).await,
             },
             None => Ok(Response::new(StatusCode::BAD_REQUEST)),
@@ -64,7 +64,7 @@ impl App {
                     let (data, status) = self.0.delete_hardware(id).await;
                     Ok(response_json(data, status))
                 }
-                Err(err) if err == MESSAGE_UNAUTHORIZED => self.handle_not_authorized(req).await,
+                Err(err) if err == messages::UNAUTHORIZED => self.handle_not_authorized(req).await,
                 Err(err) => self.handle_not_authenticated_with_message(req, err).await,
             },
             None => Ok(Response::new(StatusCode::BAD_REQUEST)),

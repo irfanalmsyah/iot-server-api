@@ -2,10 +2,7 @@ use jsonwebtoken::{decode, errors::ErrorKind, DecodingKey, Validation};
 use ntex::http::Request;
 
 use crate::{
-    constant::{
-        config,
-        messages::{MESSAGE_INVALID_TOKEN, MESSAGE_TOKEN_EXPIRED, MESSAGE_UNAUTHORIZED},
-    },
+    constant::{config, messages},
     models::jwt::Claims,
 };
 
@@ -17,8 +14,8 @@ pub async fn verify_jwt(token: &str) -> Result<Claims, &'static str> {
         &validation,
     ) {
         Ok(token_data) => Ok(token_data.claims),
-        Err(err) if err == ErrorKind::ExpiredSignature.into() => Err(MESSAGE_TOKEN_EXPIRED),
-        Err(_) => Err(MESSAGE_INVALID_TOKEN),
+        Err(err) if err == ErrorKind::ExpiredSignature.into() => Err(messages::TOKEN_EXPIRED),
+        Err(_) => Err(messages::INVALID_TOKEN),
     }
 }
 
@@ -29,7 +26,7 @@ pub async fn authenticate(req: &Request) -> Result<Claims, &'static str> {
             Ok(claims) => Ok(claims),
             Err(err) => Err(err),
         },
-        None => Err(MESSAGE_INVALID_TOKEN),
+        None => Err(messages::INVALID_TOKEN),
     }
 }
 
@@ -38,7 +35,7 @@ pub async fn authenticate_admin(req: &Request) -> Result<Claims, &'static str> {
     if claims.isadmin {
         Ok(claims)
     } else {
-        Err(MESSAGE_UNAUTHORIZED)
+        Err(messages::UNAUTHORIZED)
     }
 }
 

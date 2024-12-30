@@ -1,7 +1,7 @@
 use ntex::http::{Request, Response, StatusCode};
 use ntex::web::Error;
 
-use crate::constant::messages::MESSAGE_UNAUTHORIZED;
+use crate::constant::messages;
 use crate::utils::auth::{authenticate, authenticate_admin};
 use crate::utils::http::{extract_id_from_path, extract_jwt_from_path};
 use crate::{app::App, utils::http::response_json};
@@ -13,7 +13,7 @@ impl App {
                 let (data, status) = self.0.get_all_users().await;
                 Ok(response_json(data, status))
             }
-            Err(err) if err == MESSAGE_UNAUTHORIZED => self.handle_not_authorized(req).await,
+            Err(err) if err == messages::UNAUTHORIZED => self.handle_not_authorized(req).await,
             Err(err) => self.handle_not_authenticated_with_message(req, err).await,
         }
     }

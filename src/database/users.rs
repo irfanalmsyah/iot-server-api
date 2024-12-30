@@ -13,10 +13,7 @@ use ntex::{
 };
 
 use crate::{
-    constant::{
-        config,
-        messages::{self, MESSAGE_OK},
-    },
+    constant::{config, messages},
     models::{
         jwt::{ActivationClaims, Claims},
         response::{ApiResponse, Data},
@@ -46,7 +43,7 @@ impl PgConnection {
         }
 
         let response = ApiResponse {
-            message: MESSAGE_OK,
+            message: messages::OK,
             data: Data::Multiple(users),
         };
 
@@ -168,7 +165,7 @@ impl PgConnection {
         if users.is_empty() || !bcrypt::verify(data.password.as_ref(), &users[0].password).unwrap()
         {
             let error_response: ApiResponse<User> = ApiResponse {
-                message: messages::MESSAGE_LOGIN_FAILED,
+                message: messages::LOGIN_FAILED,
                 data: Data::None,
             };
             return serialize_response(error_response, StatusCode::UNAUTHORIZED);
@@ -193,7 +190,7 @@ impl PgConnection {
         .unwrap();
 
         let response = ApiResponse {
-            message: MESSAGE_OK,
+            message: messages::OK,
             data: Data::Single(token),
         };
 
@@ -224,7 +221,7 @@ impl PgConnection {
         };
 
         let response = ApiResponse {
-            message: MESSAGE_OK,
+            message: messages::OK,
             data: Data::Single(user),
         };
 
@@ -256,7 +253,7 @@ impl PgConnection {
                 }
 
                 let response: ApiResponse<User> = ApiResponse {
-                    message: MESSAGE_OK,
+                    message: messages::OK,
                     data: Data::None,
                 };
 
@@ -264,7 +261,7 @@ impl PgConnection {
             }
             Err(_) => {
                 let error_response: ApiResponse<User> = ApiResponse {
-                    message: messages::MESSAGE_INVALID_TOKEN,
+                    message: messages::INVALID_TOKEN,
                     data: Data::None,
                 };
                 serialize_response(error_response, StatusCode::UNAUTHORIZED)
@@ -312,7 +309,7 @@ impl PgConnection {
             Ok(_) => {
                 if config::ENVIROMENT == "development" {
                     let response: ApiResponse<User> = ApiResponse {
-                        message: messages::MESSAGE_OK,
+                        message: messages::OK,
                         data: Data::None,
                     };
                     return serialize_response(response, StatusCode::OK);
@@ -342,7 +339,7 @@ impl PgConnection {
                 }
 
                 let response: ApiResponse<User> = ApiResponse {
-                    message: messages::MESSAGE_OK,
+                    message: messages::OK,
                     data: Data::None,
                 };
                 serialize_response(response, StatusCode::OK)
@@ -387,7 +384,7 @@ impl PgConnection {
         if users.is_empty() || !bcrypt::verify(data.password.as_ref(), &users[0].password).unwrap()
         {
             let error_response: ApiResponse<User> = ApiResponse {
-                message: messages::MESSAGE_LOGIN_FAILED,
+                message: messages::LOGIN_FAILED,
                 data: Data::None,
             };
             return serialize_response(error_response, StatusCode::UNAUTHORIZED);
@@ -406,7 +403,7 @@ impl PgConnection {
         {
             Ok(_) => {
                 let response: ApiResponse<User> = ApiResponse {
-                    message: messages::MESSAGE_OK,
+                    message: messages::OK,
                     data: Data::None,
                 };
                 serialize_response(response, StatusCode::OK)
