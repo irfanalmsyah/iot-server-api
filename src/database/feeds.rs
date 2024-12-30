@@ -6,7 +6,7 @@ use ntex::{
 };
 
 use crate::{
-    constant::messages::MESSAGE_OK,
+    constant::messages,
     models::{
         feeds::FeedPayload,
         response::{ApiResponse, Data},
@@ -17,7 +17,7 @@ use crate::{
 use super::PgConnection;
 
 impl PgConnection {
-    pub async fn add_feed(&self, payload: &mut Payload) -> (Bytes, StatusCode) {
+    pub async fn add_feed(&self, payload: &mut Payload, user_id: i32) -> (Bytes, StatusCode) {
         let mut buf = Vec::new();
         while let Some(chunk) = payload.next().await {
             buf.extend_from_slice(&chunk.unwrap());
@@ -25,19 +25,30 @@ impl PgConnection {
 
         let data = std::str::from_utf8(&buf).unwrap();
         let data = sonic_rs::from_str::<FeedPayload>(data).unwrap();
-
         match self
             .cl
             .execute(
                 &self.feeds_insert,
-                &[&data.node_id, &chrono::Utc::now().naive_utc(), &data.value],
+                &[
+                    &data.node_id,
+                    &chrono::Utc::now().naive_utc(),
+                    &data.value,
+                    &user_id,
+                ],
             )
             .await
         {
-            Ok(_) => {
+            Ok(rows) => {
+                if rows == 0 {
+                    let response: ApiResponse<FeedPayload> = ApiResponse {
+                        message: messages::NODE_NOT_FOUND,
+                        data: Data::None,
+                    };
+                    return serialize_response(response, StatusCode::NOT_FOUND);
+                }
                 let response: ApiResponse<FeedPayload> = ApiResponse {
-                    message: MESSAGE_OK,
-                    data: Data::Single(data),
+                    message: messages::CREATED,
+                    data: Data::None,
                 };
                 serialize_response(response, StatusCode::CREATED)
             }
