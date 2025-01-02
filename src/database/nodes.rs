@@ -302,14 +302,7 @@ impl PgConnection {
     pub async fn delete_node(&self, id: i32, user_id: i32, is_admin: bool) -> (Bytes, StatusCode) {
         if is_admin {
             match self.cl.execute(&self.nodes_delete_by_id, &[&id]).await {
-                Ok(rows_updated) => {
-                    if rows_updated == 0 {
-                        let error_response: ApiResponse<NodePayload> = ApiResponse {
-                            message: messages::NODE_NOT_FOUND,
-                            data: Data::None,
-                        };
-                        return serialize_response(error_response, StatusCode::NOT_FOUND);
-                    }
+                Ok(_) => {
                     let response: ApiResponse<NodePayload> = ApiResponse {
                         message: messages::OK,
                         data: Data::None,
@@ -330,14 +323,7 @@ impl PgConnection {
                 .execute(&self.nodes_delete_by_id_and_user_id, &[&id, &user_id])
                 .await
             {
-                Ok(rows_updated) => {
-                    if rows_updated == 0 {
-                        let error_response: ApiResponse<NodePayload> = ApiResponse {
-                            message: messages::NODE_NOT_FOUND,
-                            data: Data::None,
-                        };
-                        return serialize_response(error_response, StatusCode::NOT_FOUND);
-                    }
+                Ok(_) => {
                     let response: ApiResponse<NodePayload> = ApiResponse {
                         message: messages::OK,
                         data: Data::None,
