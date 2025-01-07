@@ -14,3 +14,9 @@ pub struct ActivationClaims {
     pub username: Cow<'static, str>,
     pub exp: usize,
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct NodeClaims {
+    pub node_id: i32,
+    pub exp: usize,
+}

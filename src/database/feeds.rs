@@ -8,7 +8,7 @@ use ntex::{
 use crate::{
     constant::messages,
     models::{
-        feeds::FeedPayload,
+        feeds::{FeedPayload, MQTTFeedPayload},
         response::{ApiResponse, Data},
     },
     mqtt::ServerError,
@@ -65,19 +65,14 @@ impl PgConnection {
 
     pub async fn add_feed_from_mqtt(
         &self,
-        data: FeedPayload,
-        user_id: i32,
+        data: MQTTFeedPayload,
+        node_id: i32,
     ) -> Result<(), ServerError> {
         match self
             .cl
             .execute(
-                &self.feeds_insert,
-                &[
-                    &data.node_id,
-                    &chrono::Utc::now().naive_utc(),
-                    &data.value,
-                    &user_id,
-                ],
+                &self.feeds_insert_mqtt,
+                &[&node_id, &chrono::Utc::now().naive_utc(), &data.value],
             )
             .await
         {

@@ -45,6 +45,10 @@ impl Service<Request> for App {
             },
 
             ("/channel/", &Method::POST) => self.handle_add_feed(req).await,
+            _ if req.path().starts_with("/token/") => match req.method() {
+                &Method::GET => self.handle_get_node_token(req).await,
+                _ => self.handle_not_found(req).await,
+            },
 
             _ => self.handle_not_found(req).await,
         }

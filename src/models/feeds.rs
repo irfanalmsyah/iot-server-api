@@ -14,3 +14,8 @@ pub struct FeedPayload {
     pub node_id: i32,
     pub value: Vec<f64>,
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct MQTTFeedPayload {
+    pub value: Vec<f64>,
+}

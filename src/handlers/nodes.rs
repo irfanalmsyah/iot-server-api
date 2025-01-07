@@ -73,4 +73,20 @@ impl App {
             None => Ok(Response::new(StatusCode::BAD_REQUEST)),
         }
     }
+
+    pub async fn handle_get_node_token(&self, req: Request) -> Result<Response, Error> {
+        match extract_id_from_path(req.path(), "/token/") {
+            Some(id) => match authenticate(&req).await {
+                Ok(claims) => {
+                    let (data, status) = self
+                        .0
+                        .get_node_token(id, claims.user_id, claims.isadmin)
+                        .await;
+                    Ok(response_json(data, status))
+                }
+                Err(err) => self.handle_not_authenticated_with_message(req, err).await,
+            },
+            None => Ok(Response::new(StatusCode::BAD_REQUEST)),
+        }
+    }
 }

@@ -1,5 +1,6 @@
-use chrono::NaiveDateTime;
+use chrono::{Duration, NaiveDateTime, Utc};
 use futures::StreamExt;
+use jsonwebtoken::{encode, EncodingKey, Header};
 use std::{borrow::Cow::Owned, str};
 
 use ntex::{
@@ -8,10 +9,11 @@ use ntex::{
 };
 
 use crate::{
-    constant::messages,
+    constant::{config, messages},
     models::{
         feeds::Feed,
         hardwares::Hardware,
+        jwt::NodeClaims,
         nodes::{Node, NodePayload, NodeWithFeed},
         response::{ApiResponse, Data},
     },
@@ -339,5 +341,54 @@ impl PgConnection {
                 }
             }
         }
+    }
+
+    pub async fn get_node_token(
+        &self,
+        id: i32,
+        user_id: i32,
+        is_admin: bool,
+    ) -> (Bytes, StatusCode) {
+        let rows = if is_admin {
+            self.cl
+                .query(&self.nodes_select_by_id, &[&id])
+                .await
+                .unwrap()
+        } else {
+            self.cl
+                .query(
+                    &self.nodes_select_by_id_and_by_user_or_ispublic,
+                    &[&id, &user_id],
+                )
+                .await
+                .unwrap()
+        };
+
+        if rows.is_empty() {
+            let error_response: ApiResponse<NodePayload> = ApiResponse {
+                message: messages::NODE_NOT_FOUND,
+                data: Data::None,
+            };
+            return serialize_response(error_response, StatusCode::NOT_FOUND);
+        }
+
+        let token = encode(
+            &Header::default(),
+            &NodeClaims {
+                node_id: id,
+                exp: Utc::now()
+                    .checked_add_signed(Duration::days(365))
+                    .unwrap()
+                    .timestamp() as usize,
+            },
+            &EncodingKey::from_secret(config::NODE_JWT_SECRET.as_ref()),
+        )
+        .unwrap();
+
+        let response = ApiResponse {
+            message: messages::OK,
+            data: Data::Single(token),
+        };
+        serialize_response(response, StatusCode::OK)
     }
 }

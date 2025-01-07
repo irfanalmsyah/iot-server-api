@@ -35,6 +35,7 @@ pub struct PgConnection {
     nodes_delete_by_id_and_user_id: Statement,
     feeds_select_by_node_id: Statement,
     feeds_insert: Statement,
+    feeds_insert_mqtt: Statement,
     hardwares_validate_sensor_ids: Statement,
 }
 
@@ -93,6 +94,7 @@ impl PgConnection {
             .unwrap();
         let feeds_select_by_node_id = cl.prepare(query::FEEDS_SELECT_BY_NODE_ID).await.unwrap();
         let feeds_insert = cl.prepare(query::FEEDS_INSERT).await.unwrap();
+        let feeds_insert_mqtt = cl.prepare(query::FEEDS_INSERT_MQTT).await.unwrap();
         let hardwares_validate_sensor_ids = cl
             .prepare(query::HARDWARES_VALIDATE_SENSOR_IDS)
             .await
@@ -123,6 +125,7 @@ impl PgConnection {
             nodes_delete_by_id_and_user_id,
             feeds_select_by_node_id,
             feeds_insert,
+            feeds_insert_mqtt,
             hardwares_validate_sensor_ids,
         }
     }
