@@ -11,6 +11,7 @@ use crate::{
         feeds::FeedPayload,
         response::{ApiResponse, Data},
     },
+    mqtt::ServerError,
     utils::http::serialize_response,
 };
 
@@ -60,5 +61,33 @@ impl PgConnection {
                 serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
             }
         }
+    }
+
+    pub async fn add_feed_from_mqtt(
+        &self,
+        data: FeedPayload,
+        user_id: i32,
+    ) -> Result<(), ServerError> {
+        match self
+            .cl
+            .execute(
+                &self.feeds_insert,
+                &[
+                    &data.node_id,
+                    &chrono::Utc::now().naive_utc(),
+                    &data.value,
+                    &user_id,
+                ],
+            )
+            .await
+        {
+            Ok(rows) => {
+                if rows == 0 {
+                    return Err(ServerError);
+                }
+            }
+            Err(_) => return Err(ServerError),
+        }
+        Ok(())
     }
 }
