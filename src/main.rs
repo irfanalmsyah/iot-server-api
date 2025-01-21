@@ -3,11 +3,13 @@
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 use mqtt::{MySession, ServerError};
-use ntex::http;
 use ntex::service::fn_factory_with_config;
+use ntex::{chain_factory, http};
 use ntex::{fn_service, server};
 use ntex::{time::Seconds, util::PoolId, util::Ready};
-use ntex_mqtt::{v3, v5};
+use ntex_mqtt::{v3, v5, MqttError};
+use ntex_tls::openssl::SslAcceptor;
+use openssl::ssl::{self, SslFiletype, SslMethod};
 use std::sync;
 
 mod app;
@@ -21,7 +23,7 @@ mod utils;
 #[ntex::main]
 async fn main() -> std::io::Result<()> {
     println!("Starting http server: http://127.0.0.1:8080");
-    println!("Starting mqtt server: mqtt://127.0.0.1:1883");
+    println!("Starting mqtt server: mqtts://127.0.0.1:1883");
 
     let cores = core_affinity::get_core_ids().unwrap();
     let total_cores = cores.len();
@@ -29,9 +31,27 @@ async fn main() -> std::io::Result<()> {
     let pg_connection =
         sync::Arc::new(database::PgConnection::connect(constant::config::DB_URL).await);
 
+    let mut http_builder = ssl::SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+    http_builder
+        .set_private_key_file("./key.pem", SslFiletype::PEM)
+        .unwrap();
+    http_builder
+        .set_certificate_chain_file(".//cert.pem")
+        .unwrap();
+    let http_acceptor = http_builder.build();
+
+    let mut mqtt_builder = ssl::SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+    mqtt_builder
+        .set_private_key_file("./key.pem", SslFiletype::PEM)
+        .unwrap();
+    mqtt_builder
+        .set_certificate_chain_file(".//cert.pem")
+        .unwrap();
+    let mqtt_acceptor = mqtt_builder.build();
+
     let http_handle = server::build()
         .backlog(1024)
-        .bind("techempower", "0.0.0.0:8080", |cfg| {
+        .bind("techempower", "0.0.0.0:8080", move |cfg| {
             cfg.memory_pool(PoolId::P1);
             PoolId::P1.set_read_params(65535, 2048);
             PoolId::P1.set_write_params(65535, 2048);
@@ -42,6 +62,7 @@ async fn main() -> std::io::Result<()> {
                 .headers_read_rate(Seconds::ZERO, Seconds::ZERO, 0)
                 .payload_read_rate(Seconds::ZERO, Seconds::ZERO, 0)
                 .h1(app::AppFactory)
+                .openssl(http_acceptor.clone())
         })?
         .configure(move |cfg| {
             let cores = cores.clone();
@@ -59,29 +80,56 @@ async fn main() -> std::io::Result<()> {
         .bind("mqtt", "0.0.0.0:1883", move |_| {
             let pg_connection_v3 = pg_connection.clone();
             let pg_connection_v5 = pg_connection.clone();
-            ntex_mqtt::MqttServer::new()
-                .v3(v3::MqttServer::new(mqtt::handle_handshake_v3)
-                    .publish(fn_factory_with_config(
-                        move |session: v3::Session<MySession>| {
-                            let pg_connection = pg_connection_v3.clone();
-                            Ready::Ok::<_, ServerError>(fn_service(move |req| {
-                                let conn = pg_connection.clone();
-                                mqtt::handle_publish_v3(session.clone(), req, conn)
-                            }))
-                        },
-                    ))
-                    .finish())
-                .v5(v5::MqttServer::new(mqtt::handle_handshake_v5)
-                    .publish(fn_factory_with_config(
-                        move |session: v5::Session<MySession>| {
-                            let pg_connection = pg_connection_v5.clone();
-                            Ready::Ok::<_, ServerError>(fn_service(move |req| {
-                                let conn = pg_connection.clone();
-                                mqtt::handle_publish_v5(session.clone(), req, conn)
-                            }))
-                        },
-                    ))
-                    .finish())
+            chain_factory(SslAcceptor::new(mqtt_acceptor.clone()))
+                .map_err(|_err| MqttError::Service(ServerError {}))
+                .and_then(
+                    ntex_mqtt::MqttServer::new()
+                        .v3(v3::MqttServer::new(mqtt::handle_handshake_v3)
+                            .publish(fn_factory_with_config(
+                                move |session: v3::Session<MySession>| {
+                                    let pg_connection = pg_connection_v3.clone();
+                                    Ready::Ok::<_, ServerError>(fn_service(move |req| {
+                                        let conn = pg_connection.clone();
+                                        mqtt::handle_publish_v3(session.clone(), req, conn)
+                                    }))
+                                },
+                            ))
+                            .finish())
+                        .v5(v5::MqttServer::new(mqtt::handle_handshake_v5)
+                            .publish(fn_factory_with_config(
+                                move |session: v5::Session<MySession>| {
+                                    let pg_connection = pg_connection_v5.clone();
+                                    Ready::Ok::<_, ServerError>(fn_service(move |req| {
+                                        let conn = pg_connection.clone();
+                                        mqtt::handle_publish_v5(session.clone(), req, conn)
+                                    }))
+                                },
+                            ))
+                            .finish()),
+                )
+        })?
+        .run();
+
+    let http_handle_unsecure = server::build()
+        .backlog(1024)
+        .bind("techempower_http", "0.0.0.0:8081", |_| {
+            http::HttpService::build().h1(fn_service(|req: http::Request| async move {
+                let host = req.uri().host().unwrap_or("localhost");
+                let new_uri = format!("https://{}{}", host, req.uri().path());
+                Ok::<_, ntex::web::Error>(
+                    http::Response::Found()
+                        .header(http::header::LOCATION, new_uri)
+                        .finish(),
+                )
+            }))
+        })?
+        .run();
+
+    let mqtt_handle_unsecure = server::build()
+        .bind("mqtt_plain", "0.0.0.0:1884", |_| {
+            fn_service(|_| async {
+                Err::<(), MqttError<ServerError>>(MqttError::Service(ServerError {}))
+            })
         })?
         .run();
 
@@ -98,6 +146,8 @@ async fn main() -> std::io::Result<()> {
     tokio::select! {
         _ = http_handle => println!("HTTP server stopped."),
         _ = mqtt_handle => println!("MQTT server stopped."),
+        _ = http_handle_unsecure => println!("HTTP server unsecure stopped."),
+        _ = mqtt_handle_unsecure => println!("MQTT server unsecure stopped."),
         _ = shutdown_signal => {
             println!("Stopping servers...");
             http_handle_clone.stop(true).await;

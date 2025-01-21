@@ -889,6 +889,8 @@ dependencies = [
  "ntex",
  "ntex-bytes",
  "ntex-mqtt",
+ "ntex-tls",
+ "openssl",
  "serde",
  "sonic-rs",
  "tokio",
@@ -1126,6 +1128,7 @@ dependencies = [
  "ntex-service",
  "ntex-tls",
  "ntex-util",
+ "openssl",
  "percent-encoding",
  "pin-project-lite",
  "regex",
@@ -1317,9 +1320,9 @@ dependencies = [
 
 [[package]]
 name = "ntex-tls"
-version = "2.3.0"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b6df536ec6f8f2499f5e3a2e2893cfc1b775408ee0c917d0570821025dc22e3"
+checksum = "09365414dfba07030f914123f24631ae04caeed8ead42e219a5d7b54d3f52518"
 dependencies = [
  "log",
  "ntex-bytes",
@@ -1327,6 +1330,7 @@ dependencies = [
  "ntex-net",
  "ntex-service",
  "ntex-util",
+ "openssl",
 ]
 
 [[package]]
