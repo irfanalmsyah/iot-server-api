@@ -58,7 +58,16 @@ impl PgConnection {
         }
 
         let data = std::str::from_utf8(&buf).unwrap();
-        let data = sonic_rs::from_str::<RegisterPayload>(data).unwrap();
+        let data: RegisterPayload = match sonic_rs::from_str(data) {
+            Ok(data) => data,
+            Err(_) => {
+                let error_response: ApiResponse<User> = ApiResponse {
+                    message: messages::INVALID_PAYLOAD,
+                    data: Data::None,
+                };
+                return serialize_response(error_response, StatusCode::BAD_REQUEST);
+            }
+        };
 
         let hashed_password = bcrypt::hash(data.password.as_ref(), bcrypt::DEFAULT_COST).unwrap();
 
@@ -155,7 +164,16 @@ impl PgConnection {
         }
 
         let data = std::str::from_utf8(&buf).unwrap();
-        let data = sonic_rs::from_str::<LoginPayload>(data).unwrap();
+        let data: LoginPayload = match sonic_rs::from_str(data) {
+            Ok(data) => data,
+            Err(_) => {
+                let error_response: ApiResponse<User> = ApiResponse {
+                    message: messages::INVALID_PAYLOAD,
+                    data: Data::None,
+                };
+                return serialize_response(error_response, StatusCode::BAD_REQUEST);
+            }
+        };
 
         let rows = self
             .cl
@@ -289,7 +307,16 @@ impl PgConnection {
         }
 
         let data = str::from_utf8(&buf).unwrap();
-        let data = sonic_rs::from_str::<ForgotPasswordPayload>(data).unwrap();
+        let data: ForgotPasswordPayload = match sonic_rs::from_str(data) {
+            Ok(data) => data,
+            Err(_) => {
+                let error_response: ApiResponse<User> = ApiResponse {
+                    message: messages::INVALID_PAYLOAD,
+                    data: Data::None,
+                };
+                return serialize_response(error_response, StatusCode::BAD_REQUEST);
+            }
+        };
 
         let rows = self
             .cl
@@ -374,7 +401,16 @@ impl PgConnection {
         }
 
         let data = str::from_utf8(&buf).unwrap();
-        let data = sonic_rs::from_str::<ChangePasswordPayload>(data).unwrap();
+        let data: ChangePasswordPayload = match sonic_rs::from_str(data) {
+            Ok(data) => data,
+            Err(_) => {
+                let error_response: ApiResponse<User> = ApiResponse {
+                    message: messages::INVALID_PAYLOAD,
+                    data: Data::None,
+                };
+                return serialize_response(error_response, StatusCode::BAD_REQUEST);
+            }
+        };
 
         let rows = self
             .cl

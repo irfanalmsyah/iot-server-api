@@ -25,7 +25,16 @@ impl PgConnection {
         }
 
         let data = std::str::from_utf8(&buf).unwrap();
-        let data = sonic_rs::from_str::<FeedPayload>(data).unwrap();
+        let data: FeedPayload = match sonic_rs::from_str(data) {
+            Ok(data) => data,
+            Err(_) => {
+                let error_response: ApiResponse<FeedPayload> = ApiResponse {
+                    message: messages::INVALID_PAYLOAD,
+                    data: Data::None,
+                };
+                return serialize_response(error_response, StatusCode::BAD_REQUEST);
+            }
+        };
         match self
             .cl
             .execute(

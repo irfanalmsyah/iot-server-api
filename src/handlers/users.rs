@@ -1,4 +1,4 @@
-use ntex::http::{Request, Response, StatusCode};
+use ntex::http::{Request, Response};
 use ntex::web::Error;
 
 use crate::constant::messages;
@@ -42,7 +42,7 @@ impl App {
                 }
                 Err(err) => self.handle_not_authenticated_with_message(req, err).await,
             },
-            None => Ok(Response::new(StatusCode::BAD_REQUEST)),
+            None => self.handle_bad_request(req).await,
         }
     }
 
@@ -52,7 +52,7 @@ impl App {
                 let (data, status) = self.0.activate_user(token).await;
                 Ok(response_json(data, status))
             }
-            None => Ok(Response::new(StatusCode::BAD_REQUEST)),
+            None => self.handle_bad_request(req).await,
         }
     }
 

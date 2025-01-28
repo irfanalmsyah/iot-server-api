@@ -1,4 +1,4 @@
-use ntex::http::{Request, Response, StatusCode};
+use ntex::http::{Request, Response};
 use ntex::web::Error;
 
 use crate::utils::auth::authenticate;
@@ -28,7 +28,7 @@ impl App {
                 }
                 Err(err) => self.handle_not_authenticated_with_message(req, err).await,
             },
-            None => Ok(Response::new(StatusCode::BAD_REQUEST)),
+            None => self.handle_bad_request(req).await,
         }
     }
 
@@ -56,7 +56,7 @@ impl App {
                 }
                 Err(err) => self.handle_not_authenticated_with_message(req, err).await,
             },
-            None => Ok(Response::new(StatusCode::BAD_REQUEST)),
+            None => self.handle_bad_request(req).await,
         }
     }
 
@@ -70,7 +70,7 @@ impl App {
                 }
                 Err(err) => self.handle_not_authenticated_with_message(req, err).await,
             },
-            None => Ok(Response::new(StatusCode::BAD_REQUEST)),
+            None => self.handle_bad_request(req).await,
         }
     }
 
