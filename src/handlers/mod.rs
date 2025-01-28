@@ -42,4 +42,13 @@ impl App {
         let (data, status) = serialize_response(response, StatusCode::FORBIDDEN);
         Ok(response_json(data, status))
     }
+
+    pub async fn handle_bad_request(&self, _: Request) -> Result<Response, Error> {
+        let response: ApiResponse<()> = ApiResponse {
+            message: messages::INVALID_PAYLOAD,
+            data: Data::None,
+        };
+        let (data, status) = serialize_response(response, StatusCode::BAD_REQUEST);
+        Ok(response_json(data, status))
+    }
 }

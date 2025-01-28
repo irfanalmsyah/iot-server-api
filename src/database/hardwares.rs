@@ -76,7 +76,16 @@ impl PgConnection {
         }
 
         let data = std::str::from_utf8(&buf).unwrap();
-        let data = sonic_rs::from_str::<HardwarePayload>(data).unwrap();
+        let data: HardwarePayload = match sonic_rs::from_str(data) {
+            Ok(data) => data,
+            Err(_) => {
+                let error_response: ApiResponse<Hardware> = ApiResponse {
+                    message: messages::INVALID_PAYLOAD,
+                    data: Data::None,
+                };
+                return serialize_response(error_response, StatusCode::BAD_REQUEST);
+            }
+        };
         if data.type_ != "sensor"
             && data.type_ != "single-board computer"
             && data.type_ != "microcontroller unit"
@@ -124,7 +133,16 @@ impl PgConnection {
         }
 
         let data = std::str::from_utf8(&buf).unwrap();
-        let data = sonic_rs::from_str::<HardwarePayload>(data).unwrap();
+        let data: HardwarePayload = match sonic_rs::from_str(data) {
+            Ok(data) => data,
+            Err(_) => {
+                let error_response: ApiResponse<Hardware> = ApiResponse {
+                    message: messages::INVALID_PAYLOAD,
+                    data: Data::None,
+                };
+                return serialize_response(error_response, StatusCode::BAD_REQUEST);
+            }
+        };
 
         match self
             .cl

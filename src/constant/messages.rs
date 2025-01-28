@@ -13,3 +13,4 @@ pub static HARDWARE_NOT_FOUND: &str = "Hardware not found";
 pub static SENSOR_NOT_FOUND: &str = "Sensor not found";
 pub static NODE_NOT_FOUND: &str = "Node not found";
 pub static NOT_FOUND: &str = "Not found";
+pub static INVALID_PAYLOAD: &str = "Invalid payload";
