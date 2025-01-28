@@ -132,7 +132,16 @@ impl PgConnection {
         }
 
         let data = str::from_utf8(&buf).unwrap();
-        let data = sonic_rs::from_str::<NodePayload>(data).unwrap();
+        let data: NodePayload = match sonic_rs::from_str(data) {
+            Ok(data) => data,
+            Err(_) => {
+                let error_response: ApiResponse<NodePayload> = ApiResponse {
+                    message: messages::INVALID_PAYLOAD,
+                    data: Data::None,
+                };
+                return serialize_response(error_response, StatusCode::BAD_REQUEST);
+            }
+        };
 
         let rows = self
             .cl
@@ -223,7 +232,16 @@ impl PgConnection {
         }
 
         let data = str::from_utf8(&buf).unwrap();
-        let data = sonic_rs::from_str::<NodePayload>(data).unwrap();
+        let data: NodePayload = match sonic_rs::from_str(data) {
+            Ok(data) => data,
+            Err(_) => {
+                let error_response: ApiResponse<NodePayload> = ApiResponse {
+                    message: messages::INVALID_PAYLOAD,
+                    data: Data::None,
+                };
+                return serialize_response(error_response, StatusCode::BAD_REQUEST);
+            }
+        };
         if is_admin {
             match self
                 .cl
@@ -241,10 +259,17 @@ impl PgConnection {
                 )
                 .await
             {
-                Ok(_) => {
+                Ok(rows_updated) => {
+                    if rows_updated == 0 {
+                        let error_response: ApiResponse<NodePayload> = ApiResponse {
+                            message: messages::NODE_NOT_FOUND,
+                            data: Data::None,
+                        };
+                        return serialize_response(error_response, StatusCode::NOT_FOUND);
+                    }
                     let response: ApiResponse<NodePayload> = ApiResponse {
                         message: messages::OK,
-                        data: Data::Single(data),
+                        data: Data::None,
                     };
                     serialize_response(response, StatusCode::OK)
                 }
