@@ -169,21 +169,40 @@ impl PgConnection {
             return serialize_response(error_response, StatusCode::BAD_REQUEST);
         }
 
-        let rows = self
-            .cl
-            .query(
-                &self.hardwares_validate_sensor_ids,
-                &[&data.hardware_sensor_ids],
-            )
-            .await
-            .unwrap();
-
-        if rows[0].get::<_, i64>(0) > 0 {
+        if data.hardware_sensor_ids.len() != data.hardware_sensor_names.len() {
             let error_response: ApiResponse<NodePayload> = ApiResponse {
-                message: messages::SENSOR_NOT_FOUND,
+                message: messages::SENSOR_ID_AND_SENSOR_NAME_MUST_HAVE_SAME_LENGTH,
                 data: Data::None,
             };
-            return serialize_response(error_response, StatusCode::NOT_FOUND);
+            return serialize_response(error_response, StatusCode::BAD_REQUEST);
+        }
+
+        for id in &data.hardware_sensor_ids {
+            let rows = self
+                .cl
+                .query(&self.hardwares_select_by_id, &[id])
+                .await
+                .unwrap();
+            if rows.is_empty() {
+                let error_response: ApiResponse<NodePayload> = ApiResponse {
+                    message: messages::SENSOR_NOT_FOUND,
+                    data: Data::None,
+                };
+                return serialize_response(error_response, StatusCode::NOT_FOUND);
+            }
+            let hardware = Hardware {
+                id: rows[0].get(0),
+                name: Owned(rows[0].get::<_, &str>(1).to_string()),
+                type_: Owned(rows[0].get::<_, &str>(2).to_string()),
+                description: Owned(rows[0].get::<_, &str>(3).to_string()),
+            };
+            if hardware.type_ != "sensor" {
+                let error_response: ApiResponse<NodePayload> = ApiResponse {
+                    message: messages::SENSOR_TYPE_NOT_VALID,
+                    data: Data::None,
+                };
+                return serialize_response(error_response, StatusCode::BAD_REQUEST);
+            }
         }
 
         match self
