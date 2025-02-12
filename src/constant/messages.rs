@@ -15,4 +15,5 @@ pub static SENSOR_NOT_FOUND: &str = "Sensor not found";
 pub static NODE_NOT_FOUND: &str = "Node not found";
 pub static NOT_FOUND: &str = "Not found";
 pub static INVALID_PAYLOAD: &str = "Invalid payload";
-pub static SENSOR_ID_AND_SENSOR_NAME_MUST_HAVE_SAME_LENGTH: &str = "Sensor id and sensor name must have the same length";
+pub static SENSOR_ID_AND_SENSOR_NAME_MUST_HAVE_SAME_LENGTH: &str =
+    "Sensor id and sensor name must have the same length";

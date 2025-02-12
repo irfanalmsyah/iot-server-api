@@ -1,6 +1,8 @@
 use chrono::NaiveDateTime;
+use deadpool_postgres::Object;
 use futures::StreamExt;
 use std::{borrow::Cow::Owned, str};
+use tokio_postgres::types::Type;
 
 use ntex::{
     http::{Payload, StatusCode},
@@ -8,7 +10,7 @@ use ntex::{
 };
 
 use crate::{
-    constant::messages,
+    constant::{messages, query},
     models::{
         feeds::Feed,
         hardwares::Hardware,
@@ -18,139 +20,176 @@ use crate::{
     utils::http::serialize_response,
 };
 
-use super::PgConnection;
+pub async fn get_all_nodes(client: &Object, user_id: i32, is_admin: bool) -> (Bytes, StatusCode) {
+    let rows = if is_admin {
+        let stmt = client
+            .prepare_typed_cached(query::NODES_SELECT, &[])
+            .await
+            .unwrap();
+        client.query(&stmt, &[]).await.unwrap()
+    } else {
+        let stmt = client
+            .prepare_typed_cached(query::NODES_SELECT_BY_USER_OR_ISPUBLIC, &[Type::INT4])
+            .await
+            .unwrap();
+        client.query(&stmt, &[&user_id]).await.unwrap()
+    };
 
-impl PgConnection {
-    pub async fn get_all_nodes(&self, user_id: i32, is_admin: bool) -> (Bytes, StatusCode) {
-        let rows = if is_admin {
-            self.cl.query(&self.nodes_select, &[]).await.unwrap()
-        } else {
-            self.cl
-                .query(&self.nodes_select_by_user_and_ispublic, &[&user_id])
-                .await
-                .unwrap()
-        };
-
-        let mut nodes = Vec::with_capacity(rows.len());
-        for row in rows {
-            nodes.push(Node {
-                id: row.get(0),
-                user_id: row.get(1),
-                hardware_id: row.get(2),
-                name: Owned(row.get::<_, &str>(3).to_string()),
-                location: Owned(row.get::<_, &str>(4).to_string()),
-                hardware_sensor_ids: row.get::<_, Vec<i32>>(5),
-                hardware_sensor_names: row
-                    .get::<_, Vec<&str>>(6)
-                    .iter()
-                    .map(|s| Owned(s.to_string()))
-                    .collect(),
-                ispublic: row.get(7),
-            });
-        }
-
-        let response = ApiResponse {
-            message: messages::OK,
-            data: Data::Multiple(nodes),
-        };
-
-        serialize_response(response, StatusCode::OK)
-    }
-
-    pub async fn get_node_with_feeds(
-        &self,
-        id: i32,
-        user_id: i32,
-        is_admin: bool,
-    ) -> (Bytes, StatusCode) {
-        let rows = if is_admin {
-            self.cl
-                .query(&self.nodes_select_by_id, &[&id])
-                .await
-                .unwrap()
-        } else {
-            self.cl
-                .query(
-                    &self.nodes_select_by_id_and_by_user_or_ispublic,
-                    &[&id, &user_id],
-                )
-                .await
-                .unwrap()
-        };
-
-        if rows.is_empty() {
-            let error_response: ApiResponse<NodePayload> = ApiResponse {
-                message: messages::NODE_NOT_FOUND,
-                data: Data::None,
-            };
-            return serialize_response(error_response, StatusCode::NOT_FOUND);
-        }
-
-        let node = Node {
-            id: rows[0].get(0),
-            user_id: rows[0].get(1),
-            hardware_id: rows[0].get(2),
-            name: Owned(rows[0].get::<_, &str>(3).to_string()),
-            location: Owned(rows[0].get::<_, &str>(4).to_string()),
-            hardware_sensor_ids: rows[0].get::<_, Vec<i32>>(5),
-            hardware_sensor_names: rows[0]
+    let mut nodes = Vec::with_capacity(rows.len());
+    for row in rows {
+        nodes.push(Node {
+            id: row.get(0),
+            user_id: row.get(1),
+            hardware_id: row.get(2),
+            name: Owned(row.get::<_, &str>(3).to_string()),
+            location: Owned(row.get::<_, &str>(4).to_string()),
+            hardware_sensor_ids: row.get::<_, Vec<i32>>(5),
+            hardware_sensor_names: row
                 .get::<_, Vec<&str>>(6)
                 .iter()
                 .map(|s| Owned(s.to_string()))
                 .collect(),
-            ispublic: rows[0].get(7),
-        };
-
-        let feeds = self
-            .cl
-            .query(&self.feeds_select_by_node_id, &[&id])
-            .await
-            .unwrap();
-        let mut feeds_data = Vec::with_capacity(feeds.len());
-        for row in feeds {
-            feeds_data.push(Feed {
-                id: row.get(0),
-                node_id: row.get(1),
-                time: row.get::<_, NaiveDateTime>(2),
-                value: row.get::<_, Vec<f64>>(3),
-            });
-        }
-        let response = ApiResponse {
-            message: messages::OK,
-            data: Data::Single(NodeWithFeed {
-                node,
-                feeds: feeds_data,
-            }),
-        };
-        serialize_response(response, StatusCode::OK)
+            ispublic: row.get(7),
+        });
     }
 
-    pub async fn add_node(&self, payload: &mut Payload, user_id: i32) -> (Bytes, StatusCode) {
-        let mut buf = Vec::new();
-        while let Some(chunk) = payload.next().await {
-            buf.extend_from_slice(&chunk.unwrap());
-        }
+    let response = ApiResponse {
+        message: messages::OK,
+        data: Data::Multiple(nodes),
+    };
 
-        let data = str::from_utf8(&buf).unwrap();
-        let data: NodePayload = match sonic_rs::from_str(data) {
-            Ok(data) => data,
-            Err(_) => {
-                let error_response: ApiResponse<NodePayload> = ApiResponse {
-                    message: messages::INVALID_PAYLOAD,
-                    data: Data::None,
-                };
-                return serialize_response(error_response, StatusCode::BAD_REQUEST);
-            }
-        };
+    serialize_response(response, StatusCode::OK)
+}
 
-        let rows = self
-            .cl
-            .query(&self.hardwares_select_by_id, &[&data.hardware_id])
+pub async fn get_node_with_feeds(
+    client: &Object,
+    id: i32,
+    user_id: i32,
+    is_admin: bool,
+) -> (Bytes, StatusCode) {
+    let rows = if is_admin {
+        let stmt = client
+            .prepare_typed_cached(query::NODES_SELECT_BY_ID, &[Type::INT4])
             .await
             .unwrap();
+        client.query(&stmt, &[&id]).await.unwrap()
+    } else {
+        let stmt = client
+            .prepare_typed_cached(
+                query::NODES_SELECT_BY_ID_AND_BY_USER_OR_ISPUBLIC,
+                &[Type::INT4, Type::INT4],
+            )
+            .await
+            .unwrap();
+        client.query(&stmt, &[&id, &user_id]).await.unwrap()
+    };
+
+    if rows.is_empty() {
+        let error_response: ApiResponse<NodePayload> = ApiResponse {
+            message: messages::NODE_NOT_FOUND,
+            data: Data::None,
+        };
+        return serialize_response(error_response, StatusCode::NOT_FOUND);
+    }
+
+    let node = Node {
+        id: rows[0].get(0),
+        user_id: rows[0].get(1),
+        hardware_id: rows[0].get(2),
+        name: Owned(rows[0].get::<_, &str>(3).to_string()),
+        location: Owned(rows[0].get::<_, &str>(4).to_string()),
+        hardware_sensor_ids: rows[0].get::<_, Vec<i32>>(5),
+        hardware_sensor_names: rows[0]
+            .get::<_, Vec<&str>>(6)
+            .iter()
+            .map(|s| Owned(s.to_string()))
+            .collect(),
+        ispublic: rows[0].get(7),
+    };
+
+    let stmt = client
+        .prepare_typed_cached(query::FEEDS_SELECT_BY_NODE_ID, &[Type::INT4])
+        .await
+        .unwrap();
+
+    let feeds = client.query(&stmt, &[&id]).await.unwrap();
+    let mut feeds_data = Vec::with_capacity(feeds.len());
+    for row in feeds {
+        feeds_data.push(Feed {
+            id: row.get(0),
+            node_id: row.get(1),
+            time: row.get::<_, NaiveDateTime>(2),
+            value: row.get::<_, Vec<f64>>(3),
+        });
+    }
+    let response = ApiResponse {
+        message: messages::OK,
+        data: Data::Single(NodeWithFeed {
+            node,
+            feeds: feeds_data,
+        }),
+    };
+    serialize_response(response, StatusCode::OK)
+}
+
+pub async fn add_node(client: &Object, payload: &mut Payload, user_id: i32) -> (Bytes, StatusCode) {
+    let mut buf = Vec::new();
+    while let Some(chunk) = payload.next().await {
+        buf.extend_from_slice(&chunk.unwrap());
+    }
+
+    let data = str::from_utf8(&buf).unwrap();
+    let data: NodePayload = match sonic_rs::from_str(data) {
+        Ok(data) => data,
+        Err(_) => {
+            let error_response: ApiResponse<NodePayload> = ApiResponse {
+                message: messages::INVALID_PAYLOAD,
+                data: Data::None,
+            };
+            return serialize_response(error_response, StatusCode::BAD_REQUEST);
+        }
+    };
+
+    let stmt = client
+        .prepare_typed_cached(query::HARDWARES_SELECT_BY_ID, &[Type::INT4])
+        .await
+        .unwrap();
+
+    let rows = client.query(&stmt, &[&data.hardware_id]).await.unwrap();
+    if rows.is_empty() {
+        let error_response: ApiResponse<NodePayload> = ApiResponse {
+            message: messages::HARDWARE_NOT_FOUND,
+            data: Data::None,
+        };
+        return serialize_response(error_response, StatusCode::NOT_FOUND);
+    }
+    let hardware = Hardware {
+        id: rows[0].get(0),
+        name: Owned(rows[0].get::<_, &str>(1).to_string()),
+        type_: Owned(rows[0].get::<_, &str>(2).to_string()),
+        description: Owned(rows[0].get::<_, &str>(3).to_string()),
+    };
+    if hardware.type_ == "sensor" {
+        let error_response: ApiResponse<NodePayload> = ApiResponse {
+            message: messages::NODE_HARDWARE_CANNOT_BE_SENSOR,
+            data: Data::None,
+        };
+        return serialize_response(error_response, StatusCode::BAD_REQUEST);
+    }
+
+    if data.hardware_sensor_ids.len() != data.hardware_sensor_names.len() {
+        let error_response: ApiResponse<NodePayload> = ApiResponse {
+            message: messages::SENSOR_ID_AND_SENSOR_NAME_MUST_HAVE_SAME_LENGTH,
+            data: Data::None,
+        };
+        return serialize_response(error_response, StatusCode::BAD_REQUEST);
+    }
+
+    for id in &data.hardware_sensor_ids {
+        let rows = client.query(&stmt, &[id]).await.unwrap();
         if rows.is_empty() {
             let error_response: ApiResponse<NodePayload> = ApiResponse {
-                message: messages::HARDWARE_NOT_FOUND,
+                message: messages::SENSOR_NOT_FOUND,
                 data: Data::None,
             };
             return serialize_response(error_response, StatusCode::NOT_FOUND);
@@ -161,72 +200,188 @@ impl PgConnection {
             type_: Owned(rows[0].get::<_, &str>(2).to_string()),
             description: Owned(rows[0].get::<_, &str>(3).to_string()),
         };
-        if hardware.type_ == "sensor" {
+        if hardware.type_ != "sensor" {
             let error_response: ApiResponse<NodePayload> = ApiResponse {
-                message: messages::NODE_HARDWARE_CANNOT_BE_SENSOR,
+                message: messages::SENSOR_TYPE_NOT_VALID,
                 data: Data::None,
             };
             return serialize_response(error_response, StatusCode::BAD_REQUEST);
         }
+    }
+    // pub static NODES_INSERT: &str = "INSERT INTO nodes (user_id, hardware_id, name, location, hardware_sensor_ids, hardware_sensor_names, ispublic) VALUES ($1, $2, $3, $4, $5, $6, $7)";
 
-        if data.hardware_sensor_ids.len() != data.hardware_sensor_names.len() {
+    let stmt = client
+        .prepare_typed_cached(
+            query::NODES_INSERT,
+            &[
+                Type::INT4,
+                Type::INT4,
+                Type::TEXT,
+                Type::TEXT,
+                Type::INT4_ARRAY,
+                Type::TEXT_ARRAY,
+                Type::BOOL,
+            ],
+        )
+        .await
+        .unwrap();
+
+    match client
+        .execute(
+            &stmt,
+            &[
+                &user_id,
+                &data.hardware_id,
+                &data.name.as_ref(),
+                &data.location.as_ref(),
+                &data.hardware_sensor_ids,
+                &data.hardware_sensor_names,
+                &data.ispublic,
+            ],
+        )
+        .await
+    {
+        Ok(_) => {
+            let response: ApiResponse<NodePayload> = ApiResponse {
+                message: messages::CREATED,
+                data: Data::None,
+            };
+            serialize_response(response, StatusCode::CREATED)
+        }
+        Err(e) => {
             let error_response: ApiResponse<NodePayload> = ApiResponse {
-                message: messages::SENSOR_ID_AND_SENSOR_NAME_MUST_HAVE_SAME_LENGTH,
+                message: &e.to_string(),
+                data: Data::None,
+            };
+            serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+pub async fn update_node(
+    client: &Object,
+    id: i32,
+    payload: &mut Payload,
+    user_id: i32,
+    is_admin: bool,
+) -> (Bytes, StatusCode) {
+    let mut buf = Vec::new();
+    while let Some(chunk) = payload.next().await {
+        buf.extend_from_slice(&chunk.unwrap());
+    }
+
+    let data = str::from_utf8(&buf).unwrap();
+    let data: NodePayload = match sonic_rs::from_str(data) {
+        Ok(data) => data,
+        Err(_) => {
+            let error_response: ApiResponse<NodePayload> = ApiResponse {
+                message: messages::INVALID_PAYLOAD,
                 data: Data::None,
             };
             return serialize_response(error_response, StatusCode::BAD_REQUEST);
         }
+    };
 
-        for id in &data.hardware_sensor_ids {
-            let rows = self
-                .cl
-                .query(&self.hardwares_select_by_id, &[id])
-                .await
-                .unwrap();
-            if rows.is_empty() {
-                let error_response: ApiResponse<NodePayload> = ApiResponse {
-                    message: messages::SENSOR_NOT_FOUND,
-                    data: Data::None,
-                };
-                return serialize_response(error_response, StatusCode::NOT_FOUND);
-            }
-            let hardware = Hardware {
-                id: rows[0].get(0),
-                name: Owned(rows[0].get::<_, &str>(1).to_string()),
-                type_: Owned(rows[0].get::<_, &str>(2).to_string()),
-                description: Owned(rows[0].get::<_, &str>(3).to_string()),
-            };
-            if hardware.type_ != "sensor" {
-                let error_response: ApiResponse<NodePayload> = ApiResponse {
-                    message: messages::SENSOR_TYPE_NOT_VALID,
-                    data: Data::None,
-                };
-                return serialize_response(error_response, StatusCode::BAD_REQUEST);
-            }
-        }
-
-        match self
-            .cl
-            .execute(
-                &self.nodes_insert,
+    if is_admin {
+        let stmt = client
+            .prepare_typed_cached(
+                query::NODES_UPDATE_BY_ID,
                 &[
-                    &user_id,
+                    Type::INT4,
+                    Type::TEXT,
+                    Type::TEXT,
+                    Type::INT4_ARRAY,
+                    Type::TEXT_ARRAY,
+                    Type::BOOL,
+                    Type::INT4,
+                ],
+            )
+            .await
+            .unwrap();
+        match client
+            .execute(
+                &stmt,
+                &[
                     &data.hardware_id,
                     &data.name.as_ref(),
                     &data.location.as_ref(),
                     &data.hardware_sensor_ids,
                     &data.hardware_sensor_names,
                     &data.ispublic,
+                    &id,
                 ],
             )
             .await
         {
-            Ok(_) => {
+            Ok(rows_updated) => {
+                if rows_updated == 0 {
+                    let error_response: ApiResponse<NodePayload> = ApiResponse {
+                        message: messages::NODE_NOT_FOUND,
+                        data: Data::None,
+                    };
+                    return serialize_response(error_response, StatusCode::NOT_FOUND);
+                }
                 let response: ApiResponse<NodePayload> = ApiResponse {
-                    message: messages::CREATED,
+                    message: messages::OK,
                     data: Data::None,
                 };
-                serialize_response(response, StatusCode::CREATED)
+                serialize_response(response, StatusCode::OK)
+            }
+            Err(e) => {
+                let error_response: ApiResponse<NodePayload> = ApiResponse {
+                    message: &e.to_string(),
+                    data: Data::None,
+                };
+                serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
+            }
+        }
+    } else {
+        let stmt = client
+            .prepare_typed_cached(
+                query::NODES_UPDATE_BY_ID_AND_USER_ID,
+                &[
+                    Type::INT4,
+                    Type::TEXT,
+                    Type::TEXT,
+                    Type::INT4_ARRAY,
+                    Type::TEXT_ARRAY,
+                    Type::BOOL,
+                    Type::INT4,
+                    Type::INT4,
+                ],
+            )
+            .await
+            .unwrap();
+
+        match client
+            .execute(
+                &stmt,
+                &[
+                    &data.hardware_id,
+                    &data.name.as_ref(),
+                    &data.location.as_ref(),
+                    &data.hardware_sensor_ids,
+                    &data.hardware_sensor_names,
+                    &data.ispublic,
+                    &id,
+                    &user_id,
+                ],
+            )
+            .await
+        {
+            Ok(rows_updated) => {
+                if rows_updated == 0 {
+                    let error_response: ApiResponse<NodePayload> = ApiResponse {
+                        message: messages::NODE_NOT_FOUND,
+                        data: Data::None,
+                    };
+                    return serialize_response(error_response, StatusCode::NOT_FOUND);
+                }
+                let response: ApiResponse<NodePayload> = ApiResponse {
+                    message: messages::OK,
+                    data: Data::Single(data),
+                };
+                serialize_response(response, StatusCode::OK)
             }
             Err(e) => {
                 let error_response: ApiResponse<NodePayload> = ApiResponse {
@@ -237,150 +392,57 @@ impl PgConnection {
             }
         }
     }
+}
 
-    pub async fn update_node(
-        &self,
-        id: i32,
-        payload: &mut Payload,
-        user_id: i32,
-        is_admin: bool,
-    ) -> (Bytes, StatusCode) {
-        let mut buf = Vec::new();
-        while let Some(chunk) = payload.next().await {
-            buf.extend_from_slice(&chunk.unwrap());
-        }
-
-        let data = str::from_utf8(&buf).unwrap();
-        let data: NodePayload = match sonic_rs::from_str(data) {
-            Ok(data) => data,
-            Err(_) => {
-                let error_response: ApiResponse<NodePayload> = ApiResponse {
-                    message: messages::INVALID_PAYLOAD,
+pub async fn delete_node(
+    client: &Object,
+    id: i32,
+    user_id: i32,
+    is_admin: bool,
+) -> (Bytes, StatusCode) {
+    if is_admin {
+        let stmt = client
+            .prepare_typed_cached(query::NODES_DELETE_BY_ID, &[Type::INT4])
+            .await
+            .unwrap();
+        match client.execute(&stmt, &[&id]).await {
+            Ok(_) => {
+                let response: ApiResponse<NodePayload> = ApiResponse {
+                    message: messages::OK,
                     data: Data::None,
                 };
-                return serialize_response(error_response, StatusCode::BAD_REQUEST);
+                serialize_response(response, StatusCode::OK)
             }
-        };
-        if is_admin {
-            match self
-                .cl
-                .execute(
-                    &self.nodes_update_by_id,
-                    &[
-                        &data.hardware_id,
-                        &data.name.as_ref(),
-                        &data.location.as_ref(),
-                        &data.hardware_sensor_ids,
-                        &data.hardware_sensor_names,
-                        &data.ispublic,
-                        &id,
-                    ],
-                )
-                .await
-            {
-                Ok(rows_updated) => {
-                    if rows_updated == 0 {
-                        let error_response: ApiResponse<NodePayload> = ApiResponse {
-                            message: messages::NODE_NOT_FOUND,
-                            data: Data::None,
-                        };
-                        return serialize_response(error_response, StatusCode::NOT_FOUND);
-                    }
-                    let response: ApiResponse<NodePayload> = ApiResponse {
-                        message: messages::OK,
-                        data: Data::None,
-                    };
-                    serialize_response(response, StatusCode::OK)
-                }
-                Err(e) => {
-                    let error_response: ApiResponse<NodePayload> = ApiResponse {
-                        message: &e.to_string(),
-                        data: Data::None,
-                    };
-                    serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
-                }
-            }
-        } else {
-            match self
-                .cl
-                .execute(
-                    &self.nodes_update_by_id_and_user_id,
-                    &[
-                        &data.hardware_id,
-                        &data.name.as_ref(),
-                        &data.location.as_ref(),
-                        &data.hardware_sensor_ids,
-                        &data.hardware_sensor_names,
-                        &data.ispublic,
-                        &id,
-                        &user_id,
-                    ],
-                )
-                .await
-            {
-                Ok(rows_updated) => {
-                    if rows_updated == 0 {
-                        let error_response: ApiResponse<NodePayload> = ApiResponse {
-                            message: messages::NODE_NOT_FOUND,
-                            data: Data::None,
-                        };
-                        return serialize_response(error_response, StatusCode::NOT_FOUND);
-                    }
-                    let response: ApiResponse<NodePayload> = ApiResponse {
-                        message: messages::OK,
-                        data: Data::Single(data),
-                    };
-                    serialize_response(response, StatusCode::OK)
-                }
-                Err(e) => {
-                    let error_response: ApiResponse<NodePayload> = ApiResponse {
-                        message: &e.to_string(),
-                        data: Data::None,
-                    };
-                    serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
-                }
+            Err(e) => {
+                let error_response: ApiResponse<NodePayload> = ApiResponse {
+                    message: &e.to_string(),
+                    data: Data::None,
+                };
+                serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
             }
         }
-    }
-
-    pub async fn delete_node(&self, id: i32, user_id: i32, is_admin: bool) -> (Bytes, StatusCode) {
-        if is_admin {
-            match self.cl.execute(&self.nodes_delete_by_id, &[&id]).await {
-                Ok(_) => {
-                    let response: ApiResponse<NodePayload> = ApiResponse {
-                        message: messages::OK,
-                        data: Data::None,
-                    };
-                    serialize_response(response, StatusCode::OK)
-                }
-                Err(e) => {
-                    let error_response: ApiResponse<NodePayload> = ApiResponse {
-                        message: &e.to_string(),
-                        data: Data::None,
-                    };
-                    serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
-                }
+    } else {
+        let stmt = client
+            .prepare_typed_cached(
+                query::NODES_DELETE_BY_ID_AND_USER_ID,
+                &[Type::INT4, Type::INT4],
+            )
+            .await
+            .unwrap();
+        match client.execute(&stmt, &[&id, &user_id]).await {
+            Ok(_) => {
+                let response: ApiResponse<NodePayload> = ApiResponse {
+                    message: messages::OK,
+                    data: Data::None,
+                };
+                serialize_response(response, StatusCode::OK)
             }
-        } else {
-            match self
-                .cl
-                .execute(&self.nodes_delete_by_id_and_user_id, &[&id, &user_id])
-                .await
-            {
-                Ok(_) => {
-                    let response: ApiResponse<NodePayload> = ApiResponse {
-                        message: messages::OK,
-                        data: Data::None,
-                    };
-                    serialize_response(response, StatusCode::OK)
-                }
-                Err(e) => {
-                    let error_response: ApiResponse<NodePayload> = ApiResponse {
-                        message: &e.to_string(),
-                        data: Data::None,
-                    };
-                    serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
-                }
+            Err(e) => {
+                let error_response: ApiResponse<NodePayload> = ApiResponse {
+                    message: &e.to_string(),
+                    data: Data::None,
+                };
+                serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
             }
         }
     }

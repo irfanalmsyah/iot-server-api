@@ -1,6 +1,7 @@
 use ntex::http::{Request, Response};
 use ntex::web::Error;
 
+use crate::database::nodes;
 use crate::utils::auth::authenticate;
 use crate::utils::http::extract_id_from_path;
 use crate::{app::App, utils::http::response_json};
@@ -9,7 +10,9 @@ impl App {
     pub async fn handle_get_nodes(&self, req: Request) -> Result<Response, Error> {
         match authenticate(&req).await {
             Ok(claims) => {
-                let (data, status) = self.0.get_all_nodes(claims.user_id, claims.isadmin).await;
+                let client = self.pool.get().await.unwrap();
+                let (data, status) =
+                    nodes::get_all_nodes(&client, claims.user_id, claims.isadmin).await;
                 Ok(response_json(data, status))
             }
             Err(err) => self.handle_not_authenticated_with_message(req, err).await,
@@ -20,10 +23,10 @@ impl App {
         match extract_id_from_path(req.path(), "/nodes/") {
             Some(id) => match authenticate(&req).await {
                 Ok(claims) => {
-                    let (data, status) = self
-                        .0
-                        .get_node_with_feeds(id, claims.user_id, claims.isadmin)
-                        .await;
+                    let client = self.pool.get().await.unwrap();
+                    let (data, status) =
+                        nodes::get_node_with_feeds(&client, id, claims.user_id, claims.isadmin)
+                            .await;
                     Ok(response_json(data, status))
                 }
                 Err(err) => self.handle_not_authenticated_with_message(req, err).await,
@@ -36,7 +39,8 @@ impl App {
         match authenticate(&req).await {
             Ok(claims) => {
                 let payload = req.payload();
-                let (data, status) = self.0.add_node(payload, claims.user_id).await;
+                let client = self.pool.get().await.unwrap();
+                let (data, status) = nodes::add_node(&client, payload, claims.user_id).await;
                 Ok(response_json(data, status))
             }
             Err(err) => self.handle_not_authenticated_with_message(req, err).await,
@@ -48,10 +52,10 @@ impl App {
             Some(id) => match authenticate(&req).await {
                 Ok(claims) => {
                     let payload = req.payload();
-                    let (data, status) = self
-                        .0
-                        .update_node(id, payload, claims.user_id, claims.isadmin)
-                        .await;
+                    let client = self.pool.get().await.unwrap();
+                    let (data, status) =
+                        nodes::update_node(&client, id, payload, claims.user_id, claims.isadmin)
+                            .await;
                     Ok(response_json(data, status))
                 }
                 Err(err) => self.handle_not_authenticated_with_message(req, err).await,
@@ -64,8 +68,9 @@ impl App {
         match extract_id_from_path(req.path(), "/nodes/") {
             Some(id) => match authenticate(&req).await {
                 Ok(claims) => {
+                    let client = self.pool.get().await.unwrap();
                     let (data, status) =
-                        self.0.delete_node(id, claims.user_id, claims.isadmin).await;
+                        nodes::delete_node(&client, id, claims.user_id, claims.isadmin).await;
                     Ok(response_json(data, status))
                 }
                 Err(err) => self.handle_not_authenticated_with_message(req, err).await,

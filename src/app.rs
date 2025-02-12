@@ -1,10 +1,13 @@
-use crate::constant::config;
-use crate::database::PgConnection;
+use std::sync::Arc;
+
+use deadpool_postgres::Pool;
 use ntex::http::{Method, Request, Response};
 use ntex::service::{Service, ServiceCtx, ServiceFactory};
 use ntex::web::Error;
 
-pub struct App(pub PgConnection);
+pub struct App {
+    pub pool: Arc<Pool>,
+}
 
 impl Service<Request> for App {
     type Response = Response;
@@ -51,7 +54,9 @@ impl Service<Request> for App {
     }
 }
 
-pub struct AppFactory;
+pub struct AppFactory {
+    pub pool: Arc<Pool>,
+}
 
 impl ServiceFactory<Request> for AppFactory {
     type Response = <App as Service<Request>>::Response;
@@ -60,6 +65,8 @@ impl ServiceFactory<Request> for AppFactory {
     type InitError = ();
 
     async fn create(&self, _: ()) -> Result<Self::Service, Self::InitError> {
-        Ok(App(PgConnection::connect(config::DB_URL).await))
+        Ok(App {
+            pool: self.pool.clone(),
+        })
     }
 }

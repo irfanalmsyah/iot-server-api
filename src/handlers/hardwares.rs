@@ -2,6 +2,7 @@ use ntex::http::{Request, Response};
 use ntex::web::Error;
 
 use crate::constant::messages;
+use crate::database::hardwares;
 use crate::utils::auth::{authenticate, authenticate_admin};
 use crate::utils::http::extract_id_from_path;
 use crate::{app::App, utils::http::response_json};
@@ -10,7 +11,8 @@ impl App {
     pub async fn handle_get_hardwares(&self, req: Request) -> Result<Response, Error> {
         match authenticate(&req).await {
             Ok(_) => {
-                let (data, status) = self.0.get_all_hardware().await;
+                let client = self.pool.get().await.unwrap();
+                let (data, status) = hardwares::get_all_hardware(&client).await;
                 Ok(response_json(data, status))
             }
             Err(err) => self.handle_not_authenticated_with_message(req, err).await,
@@ -21,7 +23,8 @@ impl App {
         match authenticate_admin(&req).await {
             Ok(_) => {
                 let payload = req.payload();
-                let (data, status) = self.0.add_hardware(payload).await;
+                let client = self.pool.get().await.unwrap();
+                let (data, status) = hardwares::add_hardware(&client, payload).await;
                 Ok(response_json(data, status))
             }
             Err(err) if err == messages::UNAUTHORIZED => self.handle_not_authorized(req).await,
@@ -33,7 +36,8 @@ impl App {
         match extract_id_from_path(req.path(), "/hardwares/") {
             Some(id) => match authenticate(&req).await {
                 Ok(_) => {
-                    let (data, status) = self.0.get_one_hardware(id).await;
+                    let client = self.pool.get().await.unwrap();
+                    let (data, status) = hardwares::get_one_hardware(&client, id).await;
                     Ok(response_json(data, status))
                 }
                 Err(err) => self.handle_not_authenticated_with_message(req, err).await,
@@ -47,7 +51,8 @@ impl App {
             Some(id) => match authenticate_admin(&req).await {
                 Ok(_) => {
                     let payload = req.payload();
-                    let (data, status) = self.0.update_hardware(id, payload).await;
+                    let client = self.pool.get().await.unwrap();
+                    let (data, status) = hardwares::update_hardware(&client, id, payload).await;
                     Ok(response_json(data, status))
                 }
                 Err(err) if err == messages::UNAUTHORIZED => self.handle_not_authorized(req).await,
@@ -61,7 +66,8 @@ impl App {
         match extract_id_from_path(req.path(), "/hardwares/") {
             Some(id) => match authenticate_admin(&req).await {
                 Ok(_) => {
-                    let (data, status) = self.0.delete_hardware(id).await;
+                    let client = self.pool.get().await.unwrap();
+                    let (data, status) = hardwares::delete_hardware(&client, id).await;
                     Ok(response_json(data, status))
                 }
                 Err(err) if err == messages::UNAUTHORIZED => self.handle_not_authorized(req).await,
