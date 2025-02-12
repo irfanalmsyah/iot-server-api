@@ -33,10 +33,19 @@ impl App {
     }
 
     pub async fn handle_post_nodes(&self, mut req: Request) -> Result<Response, Error> {
+        let content_length = req
+            .headers()
+            .get("content-length")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|s| s.parse::<usize>().ok())
+            .unwrap_or(0);
         match authenticate(&req).await {
             Ok(claims) => {
                 let payload = req.payload();
-                let (data, status) = self.0.add_node(payload, claims.user_id).await;
+                let (data, status) = self
+                    .0
+                    .add_node(payload, claims.user_id, content_length)
+                    .await;
                 Ok(response_json(data, status))
             }
             Err(err) => self.handle_not_authenticated_with_message(req, err).await,

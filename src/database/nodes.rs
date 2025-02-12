@@ -125,14 +125,28 @@ impl PgConnection {
         serialize_response(response, StatusCode::OK)
     }
 
-    pub async fn add_node(&self, payload: &mut Payload, user_id: i32) -> (Bytes, StatusCode) {
-        let mut buf = Vec::new();
+    pub async fn add_node(
+        &self,
+        payload: &mut Payload,
+        user_id: i32,
+        content_length: usize,
+    ) -> (Bytes, StatusCode) {
+        let mut buf = Vec::with_capacity(content_length);
         while let Some(chunk) = payload.next().await {
-            buf.extend_from_slice(&chunk.unwrap());
+            let chunk = match chunk {
+                Ok(chunk) => chunk,
+                Err(_) => {
+                    let error_response: ApiResponse<NodePayload> = ApiResponse {
+                        message: messages::INVALID_PAYLOAD,
+                        data: Data::None,
+                    };
+                    return serialize_response(error_response, StatusCode::BAD_REQUEST);
+                }
+            };
+            buf.extend_from_slice(&chunk);
         }
 
-        let data = str::from_utf8(&buf).unwrap();
-        let data: NodePayload = match sonic_rs::from_str(data) {
+        let data: NodePayload = match unsafe { sonic_rs::from_slice_unchecked(&buf) } {
             Ok(data) => data,
             Err(_) => {
                 let error_response: ApiResponse<NodePayload> = ApiResponse {
