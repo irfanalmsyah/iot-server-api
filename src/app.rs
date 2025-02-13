@@ -1,12 +1,11 @@
-use std::sync::Arc;
-
-use deadpool_postgres::Pool;
+use deadpool_postgres::{Config, ManagerConfig, Pool, RecyclingMethod, Runtime};
 use ntex::http::{Method, Request, Response};
 use ntex::service::{Service, ServiceCtx, ServiceFactory};
 use ntex::web::Error;
+use tokio_postgres::NoTls;
 
 pub struct App {
-    pub pool: Arc<Pool>,
+    pub pool: Pool,
 }
 
 impl Service<Request> for App {
@@ -54,9 +53,7 @@ impl Service<Request> for App {
     }
 }
 
-pub struct AppFactory {
-    pub pool: Arc<Pool>,
-}
+pub struct AppFactory;
 
 impl ServiceFactory<Request> for AppFactory {
     type Response = <App as Service<Request>>::Response;
@@ -65,8 +62,18 @@ impl ServiceFactory<Request> for AppFactory {
     type InitError = ();
 
     async fn create(&self, _: ()) -> Result<Self::Service, Self::InitError> {
-        Ok(App {
-            pool: self.pool.clone(),
-        })
+        let mut cfg = Config::new();
+        cfg.dbname = Some("rustdemo".to_string());
+        cfg.user = Some("postgres".to_string());
+        cfg.password = Some("password".to_string());
+        cfg.host = Some("localhost".to_string());
+        cfg.manager = Some(ManagerConfig {
+            recycling_method: RecyclingMethod::Fast,
+        });
+
+        let pool: Pool = cfg
+            .create_pool(Some(Runtime::Tokio1), NoTls)
+            .expect("Failed to create pool");
+        Ok(App { pool })
     }
 }
