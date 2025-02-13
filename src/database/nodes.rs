@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
 use deadpool_postgres::Object;
 use futures::StreamExt;
-use std::{borrow::Cow::Owned, str};
+use std::{borrow::Cow::Owned, collections::HashMap, str};
 use tokio_postgres::types::Type;
 
 use ntex::{
@@ -52,10 +52,34 @@ pub async fn get_all_nodes(client: &Object, user_id: i32, is_admin: bool) -> (By
             ispublic: row.get(7),
         });
     }
+    let id_nodes: Vec<i32> = nodes.iter().map(|node| node.id).collect();
+    let stmt = client
+        .prepare_typed_cached(query::FEEDS_SELECT_BY_NODE_IDS, &[Type::INT4_ARRAY])
+        .await
+        .unwrap();
+    let feed_rows = client.query(&stmt, &[&id_nodes]).await.unwrap();
+    let mut feeds_by_node: HashMap<i32, Vec<Feed>> = HashMap::new();
+    for row in feed_rows {
+        let feed = Feed {
+            time: row.get::<_, NaiveDateTime>(0),
+            value: row.get::<_, Vec<f64>>(1),
+            node_id: row.get(2),
+        };
+        feeds_by_node.entry(feed.node_id).or_default().push(feed);
+    }
+
+    let mut node_with_feed = Vec::with_capacity(nodes.len());
+    for node in nodes {
+        let node_feeds = feeds_by_node.remove(&node.id).unwrap_or_default();
+        node_with_feed.push(NodeWithFeed {
+            node,
+            feeds: node_feeds,
+        });
+    }
 
     let response = ApiResponse {
         message: messages::OK,
-        data: Data::Multiple(nodes),
+        data: Data::Multiple(node_with_feed),
     };
 
     serialize_response(response, StatusCode::OK)
@@ -116,10 +140,9 @@ pub async fn get_node_with_feeds(
     let mut feeds_data = Vec::with_capacity(feeds.len());
     for row in feeds {
         feeds_data.push(Feed {
-            id: row.get(0),
-            node_id: row.get(1),
-            time: row.get::<_, NaiveDateTime>(2),
-            value: row.get::<_, Vec<f64>>(3),
+            node_id: row.get(0),
+            time: row.get::<_, NaiveDateTime>(1),
+            value: row.get::<_, Vec<f64>>(2),
         });
     }
     let response = ApiResponse {
@@ -208,7 +231,6 @@ pub async fn add_node(client: &Object, payload: &mut Payload, user_id: i32) -> (
             return serialize_response(error_response, StatusCode::BAD_REQUEST);
         }
     }
-    // pub static NODES_INSERT: &str = "INSERT INTO nodes (user_id, hardware_id, name, location, hardware_sensor_ids, hardware_sensor_names, ispublic) VALUES ($1, $2, $3, $4, $5, $6, $7)";
 
     let stmt = client
         .prepare_typed_cached(

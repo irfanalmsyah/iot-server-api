@@ -35,9 +35,29 @@ pub async fn add_feed(client: &Object, payload: &mut Payload, user_id: i32) -> (
     };
 
     let stmt = client
+        .prepare_typed_cached(query::NODES_SELECT_BY_ID, &[Type::INT4])
+        .await
+        .unwrap();
+    let row = client.query_opt(&stmt, &[&data.node_id]).await.unwrap();
+    if row.is_none() {
+        let response: ApiResponse<FeedPayload> = ApiResponse {
+            message: messages::NODE_NOT_FOUND,
+            data: Data::None,
+        };
+        return serialize_response(response, StatusCode::NOT_FOUND);
+    };
+    if row.unwrap().get::<_, i32>(1) != user_id {
+        let response: ApiResponse<FeedPayload> = ApiResponse {
+            message: messages::UNAUTHORIZED,
+            data: Data::None,
+        };
+        return serialize_response(response, StatusCode::UNAUTHORIZED);
+    }
+
+    let stmt = client
         .prepare_typed_cached(
             query::FEEDS_INSERT,
-            &[Type::INT4, Type::TIMESTAMP, Type::FLOAT8_ARRAY, Type::INT4],
+            &[Type::INT4, Type::TIMESTAMP, Type::FLOAT8_ARRAY],
         )
         .await
         .unwrap();
@@ -45,12 +65,7 @@ pub async fn add_feed(client: &Object, payload: &mut Payload, user_id: i32) -> (
     match client
         .execute(
             &stmt,
-            &[
-                &data.node_id,
-                &chrono::Utc::now().naive_utc(),
-                &data.value,
-                &user_id,
-            ],
+            &[&data.node_id, &chrono::Utc::now().naive_utc(), &data.value],
         )
         .await
     {
