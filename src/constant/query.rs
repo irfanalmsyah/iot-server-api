@@ -31,4 +31,4 @@ pub static NODES_DELETE_BY_ID_AND_USER_ID: &str =
 pub static FEEDS_SELECT_BY_NODE_ID: &str = "SELECT * FROM feeds WHERE node_id = $1";
 pub static FEEDS_INSERT: &str = "INSERT INTO feeds (node_id, time, value) VALUES ($1, $2, $3)";
 pub static FEEDS_SELECT_BY_NODE_IDS: &str =
-    "SELECT time, value, node_id FROM feeds WHERE node_id = ANY($1)";
+    "SELECT * FROM feeds WHERE node_id = ANY($1)";

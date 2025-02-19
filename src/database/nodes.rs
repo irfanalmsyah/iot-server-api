@@ -61,9 +61,10 @@ pub async fn get_all_nodes(client: &Object, user_id: i32, is_admin: bool) -> (By
     let mut feeds_by_node: HashMap<i32, Vec<Feed>> = HashMap::new();
     for row in feed_rows {
         let feed = Feed {
-            time: row.get::<_, NaiveDateTime>(0),
-            value: row.get::<_, Vec<f64>>(1),
-            node_id: row.get(2),
+            id: row.get(0),
+            node_id: row.get(1),
+            time: row.get::<_, NaiveDateTime>(2),
+            value: row.get::<_, Vec<f64>>(3),
         };
         feeds_by_node.entry(feed.node_id).or_default().push(feed);
     }
@@ -140,9 +141,10 @@ pub async fn get_node_with_feeds(
     let mut feeds_data = Vec::with_capacity(feeds.len());
     for row in feeds {
         feeds_data.push(Feed {
-            node_id: row.get(0),
-            time: row.get::<_, NaiveDateTime>(1),
-            value: row.get::<_, Vec<f64>>(2),
+            id: row.get(0),
+            node_id: row.get(1),
+            time: row.get::<_, NaiveDateTime>(2),
+            value: row.get::<_, Vec<f64>>(3),
         });
     }
     let response = ApiResponse {
