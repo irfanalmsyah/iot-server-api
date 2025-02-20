@@ -10,9 +10,10 @@ use tokio_postgres::types::Type;
 use crate::{
     constant::{messages, query},
     models::{
-        feeds::FeedPayload,
+        feeds::{FeedPayload, MQTTFeedPayload},
         response::{ApiResponse, Data},
     },
+    mqtt::ServerError,
     utils::http::serialize_response,
 };
 
@@ -91,4 +92,34 @@ pub async fn add_feed(client: &Object, payload: &mut Payload, user_id: i32) -> (
             serialize_response(error_response, StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
+}
+
+pub async fn add_feed_from_mqtt(
+    client: &Object,
+    data: MQTTFeedPayload,
+    node_id: i32,
+) -> Result<(), ServerError> {
+    let stmt = client
+        .prepare_typed_cached(
+            query::FEEDS_INSERT,
+            &[Type::INT4, Type::TIMESTAMP, Type::FLOAT8_ARRAY],
+        )
+        .await
+        .unwrap();
+
+    match client
+        .execute(
+            &stmt,
+            &[&node_id, &chrono::Utc::now().naive_utc(), &data.value],
+        )
+        .await
+    {
+        Ok(rows) => {
+            if rows == 0 {
+                return Err(ServerError);
+            }
+        }
+        Err(_) => return Err(ServerError),
+    }
+    Ok(())
 }

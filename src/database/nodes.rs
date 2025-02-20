@@ -469,3 +469,54 @@ pub async fn delete_node(
         }
     }
 }
+
+pub async fn get_node_token(
+    client: &Object,
+    id: i32,
+    user_id: i32,
+    is_admin: bool,
+) -> (Bytes, StatusCode) {
+    let rows = if is_admin {
+        let stmt = client
+            .prepare_typed_cached(query::NODES_SELECT_BY_ID, &[Type::INT4])
+            .await
+            .unwrap();
+        client.query(&stmt, &[&id]).await.unwrap()
+    } else {
+        let stmt = client
+            .prepare_typed_cached(
+                query::NODES_SELECT_BY_ID_AND_BY_USER_OR_ISPUBLIC,
+                &[Type::INT4, Type::INT4],
+            )
+            .await
+            .unwrap();
+        client.query(&stmt, &[&id, &user_id]).await.unwrap()
+    };
+
+    if rows.is_empty() {
+        let error_response: ApiResponse<NodePayload> = ApiResponse {
+            message: messages::NODE_NOT_FOUND,
+            data: Data::None,
+        };
+        return serialize_response(error_response, StatusCode::NOT_FOUND);
+    }
+
+    let token = jsonwebtoken::encode(
+        &jsonwebtoken::Header::default(),
+        &crate::models::jwt::NodeClaims {
+            node_id: id,
+            exp: chrono::Utc::now()
+                .checked_add_signed(chrono::Duration::days(365))
+                .unwrap()
+                .timestamp() as usize,
+        },
+        &jsonwebtoken::EncodingKey::from_secret(crate::constant::config::NODE_JWT_SECRET.as_ref()),
+    )
+    .unwrap();
+
+    let response = ApiResponse {
+        message: messages::OK,
+        data: Data::Single(token),
+    };
+    serialize_response(response, StatusCode::OK)
+}

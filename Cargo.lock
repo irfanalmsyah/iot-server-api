@@ -923,6 +923,7 @@ dependencies = [
  "nanorand",
  "ntex",
  "ntex-bytes",
+ "ntex-mqtt",
  "serde",
  "sonic-rs",
  "tokio",
@@ -1255,6 +1256,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "ntex-mqtt"
+version = "4.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "acab51b7b48dbbe0fd6e4694ccf280f11e9fd4e6c8d311af1d764d31ec876b63"
+dependencies = [
+ "bitflags",
+ "log",
+ "ntex-bytes",
+ "ntex-codec",
+ "ntex-io",
+ "ntex-net",
+ "ntex-router",
+ "ntex-rt",
+ "ntex-service",
+ "ntex-util",
+ "pin-project-lite",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "ntex-net"
 version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1320,9 +1343,9 @@ dependencies = [
 
 [[package]]
 name = "ntex-service"
-version = "3.3.3"
+version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd12132d538e9c99c12e613d8ca0e1b58aa9ba8b6edf76f6e073cccfafdeeb4c"
+checksum = "07867c1db27ae44cc6c796a0995c08d76aac32dffde961677a3b1950a0008a54"
 dependencies = [
  "slab",
 ]
@@ -1357,9 +1380,9 @@ dependencies = [
 
 [[package]]
 name = "ntex-util"
-version = "2.6.1"
+version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "186b3b1d63560a8a4c95e54b7e10e2397dcaea5cd09b9bcb150183520b4eae6c"
+checksum = "043bbb0b520d813f90c52edc3c8cf225621f4c959ad931e5d8420136f57f63d2"
 dependencies = [
  "bitflags",
  "futures-core",

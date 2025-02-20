@@ -22,3 +22,4 @@ bcrypt = "0.16.0"
 jsonwebtoken = "9.3.0"
 lettre = "0.11.11"
 deadpool-postgres = { version = "0.14.1" }
+ntex-mqtt = "4.5.1"

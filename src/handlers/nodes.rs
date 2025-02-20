@@ -78,4 +78,19 @@ impl App {
             None => self.handle_bad_request(req).await,
         }
     }
+
+    pub async fn handle_get_node_token(&self, req: Request) -> Result<Response, Error> {
+        match extract_id_from_path(req.path(), "/token/") {
+            Some(id) => match authenticate(&req).await {
+                Ok(claims) => {
+                    let client = self.pool.get().await.unwrap();
+                    let (data, status) =
+                        nodes::get_node_token(&client, id, claims.user_id, claims.isadmin).await;
+                    Ok(response_json(data, status))
+                }
+                Err(err) => self.handle_not_authenticated_with_message(req, err).await,
+            },
+            None => self.handle_bad_request(req).await,
+        }
+    }
 }
