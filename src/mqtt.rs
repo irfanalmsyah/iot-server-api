@@ -1,9 +1,11 @@
-use crate::{constant::config, database, models::feeds::MQTTFeedPayload};
+use crate::{
+    constant::config,
+    database,
+    models::{feeds::FeedPayload, jwt::Claims},
+};
 use deadpool_postgres::Pool;
 use jsonwebtoken::DecodingKey;
 use ntex_mqtt::{v3, v5};
-
-use crate::models::jwt::NodeClaims;
 
 #[derive(Debug)]
 pub struct ServerError;
@@ -24,7 +26,7 @@ impl std::convert::TryFrom<ServerError> for ntex_mqtt::v5::PublishAck {
 
 #[derive(Clone, Debug)]
 pub struct MySession {
-    pub node_id: i32,
+    pub user_id: i32,
 }
 
 pub async fn handle_handshake_v3(
@@ -33,14 +35,14 @@ pub async fn handle_handshake_v3(
     let packet = handshake.packet();
     let username = packet.username.clone().unwrap();
     let token = username.as_str();
-    match jsonwebtoken::decode::<NodeClaims>(
+    match jsonwebtoken::decode::<Claims>(
         &token,
         &DecodingKey::from_secret(config::NODE_JWT_SECRET.as_ref()),
         &jsonwebtoken::Validation::default(),
     ) {
         Ok(token_data) => Ok(handshake.ack(
             MySession {
-                node_id: token_data.claims.node_id,
+                user_id: token_data.claims.user_id,
             },
             false,
         )),
@@ -57,9 +59,9 @@ pub async fn handle_publish_v3(
     let payload = publish.payload();
     if topic.path() == "channel" {
         let data = std::str::from_utf8(payload).unwrap();
-        let data = sonic_rs::from_str::<MQTTFeedPayload>(data).unwrap();
+        let data = sonic_rs::from_str::<FeedPayload>(data).unwrap();
         let client = pool.get().await.unwrap();
-        let _ = database::feeds::add_feed_from_mqtt(&client, data, session.state().node_id).await;
+        let _ = database::feeds::add_feed_from_mqtt(&client, data, session.state().user_id).await;
     }
     Ok(())
 }
@@ -70,13 +72,13 @@ pub async fn handle_handshake_v5(
     let packet = handshake.packet();
     let username = packet.username.clone().unwrap();
     let token = username.as_str();
-    match jsonwebtoken::decode::<NodeClaims>(
+    match jsonwebtoken::decode::<Claims>(
         &token,
         &DecodingKey::from_secret(config::NODE_JWT_SECRET.as_ref()),
         &jsonwebtoken::Validation::default(),
     ) {
         Ok(token_data) => Ok(handshake.ack(MySession {
-            node_id: token_data.claims.node_id,
+            user_id: token_data.claims.user_id,
         })),
         Err(_) => Err(ServerError),
     }
@@ -91,9 +93,9 @@ pub async fn handle_publish_v5(
     let payload = publish.payload();
     if topic.path() == "channel" {
         let data = std::str::from_utf8(payload).unwrap();
-        let data = sonic_rs::from_str::<MQTTFeedPayload>(data).unwrap();
+        let data = sonic_rs::from_str::<FeedPayload>(data).unwrap();
         let client = pool.get().await.unwrap();
-        let _ = database::feeds::add_feed_from_mqtt(&client, data, session.state().node_id).await;
+        let _ = database::feeds::add_feed_from_mqtt(&client, data, session.state().user_id).await;
     }
     Ok(publish.ack())
 }
