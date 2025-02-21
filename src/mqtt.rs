@@ -37,7 +37,7 @@ pub async fn handle_handshake_v3(
     let token = username.as_str();
     match jsonwebtoken::decode::<Claims>(
         &token,
-        &DecodingKey::from_secret(config::NODE_JWT_SECRET.as_ref()),
+        &DecodingKey::from_secret(config::JWT_SECRET.as_ref()),
         &jsonwebtoken::Validation::default(),
     ) {
         Ok(token_data) => Ok(handshake.ack(
@@ -74,7 +74,7 @@ pub async fn handle_handshake_v5(
     let token = username.as_str();
     match jsonwebtoken::decode::<Claims>(
         &token,
-        &DecodingKey::from_secret(config::NODE_JWT_SECRET.as_ref()),
+        &DecodingKey::from_secret(config::JWT_SECRET.as_ref()),
         &jsonwebtoken::Validation::default(),
     ) {
         Ok(token_data) => Ok(handshake.ack(MySession {
